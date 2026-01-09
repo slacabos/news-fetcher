@@ -10,7 +10,11 @@
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(circle at 20% 20%, rgba(255, 92, 138, 0.15), transparent 45%),
+  background: radial-gradient(
+      circle at 20% 20%,
+      rgba(255, 92, 138, 0.15),
+      transparent 45%
+    ),
     radial-gradient(circle at 80% 0%, rgba(124, 58, 237, 0.15), transparent 40%);
   pointer-events: none;
   z-index: -1;
@@ -76,7 +80,11 @@
 }
 
 .nav-link.is-active {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary)
+  );
   color: #fff;
   box-shadow: 0 12px 30px rgba(124, 58, 237, 0.35);
 }

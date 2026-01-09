@@ -1,4 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, NavLink, Link } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  NavLink,
+  Link,
+} from "react-router-dom";
 import { LatestSummary } from "./components/LatestSummary";
 import { SummaryHistory } from "./components/SummaryHistory";
 import { SummaryDetail } from "./components/SummaryDetail";

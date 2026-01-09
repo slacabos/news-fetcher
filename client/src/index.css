@@ -1,8 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
 
 :root {
-  --font-sans: "Space Grotesk", "IBM Plex Sans", "Segoe UI", system-ui, -apple-system,
-    BlinkMacSystemFont, sans-serif;
+  --font-sans: "Space Grotesk", "IBM Plex Sans", "Segoe UI", system-ui,
+    -apple-system, BlinkMacSystemFont, sans-serif;
   --color-ink: #09111f;
   --color-muted: #6b7a8e;
   --color-subtle: #94a0b5;
@@ -125,7 +125,11 @@ button:disabled {
 .primary-button {
   border-radius: 999px;
   padding: 0.85rem 1.8rem;
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary)
+  );
   color: #fff;
   font-weight: 600;
   letter-spacing: 0.01em;

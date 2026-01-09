@@ -8,8 +8,16 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 0% 0%, rgba(255, 92, 138, 0.2), transparent 45%),
-    radial-gradient(circle at 100% 20%, rgba(124, 58, 237, 0.25), transparent 40%);
+  background: radial-gradient(
+      circle at 0% 0%,
+      rgba(255, 92, 138, 0.2),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 100% 20%,
+      rgba(124, 58, 237, 0.25),
+      transparent 40%
+    );
   pointer-events: none;
   opacity: 0.9;
 }

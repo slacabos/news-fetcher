@@ -105,15 +105,13 @@ export const SummaryDetail = () => {
           <div className="source-grid">
             {summary.sources.map((source, index) => (
               <article key={source.id || index} className="source-card">
-                <a
-                  href={source.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
+                <a href={source.url} target="_blank" rel="noopener noreferrer">
                   {source.title}
                 </a>
                 <div className="source-card__meta">
-                  <span className="pill pill--subreddit">r/{source.subreddit}</span>
+                  <span className="pill pill--subreddit">
+                    r/{source.subreddit}
+                  </span>
                   <span className="pill pill--score">↑ {source.score}</span>
                 </div>
               </article>

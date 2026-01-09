@@ -42,8 +42,9 @@ export const ManualFetch = () => {
         <h3>Manual fetch</h3>
       </header>
       <p className="manual-fetch__copy">
-        Kick off a new Reddit scrape and LLM summary generation instantly. Useful
-        when you want to compare today&apos;s headlines with emerging chatter.
+        Kick off a new Reddit scrape and LLM summary generation instantly.
+        Useful when you want to compare today&apos;s headlines with emerging
+        chatter.
       </p>
 
       <button
@@ -55,7 +56,9 @@ export const ManualFetch = () => {
       </button>
 
       <div className="manual-fetch__status" aria-live="polite">
-        {message && <p className="status-text status-text--success">{message}</p>}
+        {message && (
+          <p className="status-text status-text--success">{message}</p>
+        )}
         {error && <p className="status-text status-text--error">{error}</p>}
       </div>
     </section>
