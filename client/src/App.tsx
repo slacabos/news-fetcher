@@ -18,7 +18,7 @@ function App() {
         <header className="site-header">
           <div className="brand-cluster">
             <Link to="/" className="brand-mark" aria-label="News Fetcher home">
-              🗞
+              <img src="/logo.svg" alt="News Fetcher logo" />
             </Link>
             <div className="brand-copy">
               <p className="eyebrow">News Fetcher</p>
