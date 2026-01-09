@@ -1,0 +1,48 @@
+.latest-summary-card {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+}
+
+.latest-summary-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 0% 0%, rgba(255, 92, 138, 0.2), transparent 45%),
+    radial-gradient(circle at 100% 20%, rgba(124, 58, 237, 0.25), transparent 40%);
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.latest-summary-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.summary-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.summary-headline h2 {
+  font-size: clamp(1.5rem, 2.5vw, 2.3rem);
+  color: #fff;
+}
+
+.summary-headline .eyebrow {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.summary-body {
+  backdrop-filter: blur(6px);
+}
+
+.source-stack h3 {
+  color: #fff;
+}
+
+.summary-headline span {
+  font-weight: 500;
+}

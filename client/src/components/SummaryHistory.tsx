@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import type { SummaryWithSources } from "../types";
 import { summaryApi } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import "./summary-shared.css";
+import "./SummaryHistory.css";
 
 export const SummaryHistory = () => {
   const [summaries, setSummaries] = useState<SummaryWithSources[]>([]);
@@ -40,29 +42,54 @@ export const SummaryHistory = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading summaries...</div>;
+    return (
+      <div className="status-message status-message--loading" role="status">
+        Loading archive...
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return (
+      <div className="status-message status-message--error" role="alert">
+        {error}
+      </div>
+    );
   }
 
   return (
-    <div className="summary-history">
-      <h1>Summary History</h1>
+    <section className="history-panel summary-panel">
+      <header className="history-header">
+        <div>
+          <p className="eyebrow">Archive</p>
+          <h2>Summary history</h2>
+        </div>
+        {(dateFilter || topicFilter) && (
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => {
+              setDateFilter("");
+              setTopicFilter("");
+            }}
+          >
+            Clear filters
+          </button>
+        )}
+      </header>
 
-      <div className="filters">
-        <div className="filter-group">
-          <label htmlFor="date-filter">Date:</label>
+      <div className="filters-grid">
+        <label className="filter-field" htmlFor="date-filter">
+          <span>Date</span>
           <input
             id="date-filter"
             type="date"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
           />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="topic-filter">Topic:</label>
+        </label>
+        <label className="filter-field" htmlFor="topic-filter">
+          <span>Topic</span>
           <input
             id="topic-filter"
             type="text"
@@ -70,48 +97,45 @@ export const SummaryHistory = () => {
             onChange={(e) => setTopicFilter(e.target.value)}
             placeholder="Filter by topic..."
           />
-        </div>
-        {(dateFilter || topicFilter) && (
-          <button
-            className="clear-filters"
-            onClick={() => {
-              setDateFilter("");
-              setTopicFilter("");
-            }}
-          >
-            Clear Filters
-          </button>
-        )}
+        </label>
       </div>
 
       {summaries.length === 0 ? (
-        <div className="no-data">No summaries found</div>
+        <div className="status-message status-message--empty">
+          No summaries found
+        </div>
       ) : (
-        <div className="summaries-list">
+        <div className="history-grid">
           {summaries.map((summary) => (
-            <div
+            <article
               key={summary.id}
-              className="summary-card"
+              className="history-card"
               onClick={() => handleSummaryClick(summary.id)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleSummaryClick(summary.id);
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
-              <div className="card-header">
-                <span className="topic-badge">{summary.topic}</span>
-                <span className="date">
+              <div className="history-card__meta">
+                <span className="topic-pill">{summary.topic}</span>
+                <span className="meta-pill">
                   {new Date(summary.created_at).toLocaleDateString()}
                 </span>
               </div>
-              <div className="card-preview">
-                {summary.summary_markdown.slice(0, 200)}...
+              <p className="history-card__preview">
+                {summary.summary_markdown.slice(0, 220)}...
+              </p>
+              <div className="history-card__footer">
+                <span>{summary.sources?.length || 0} sources</span>
               </div>
-              <div className="card-footer">
-                <span className="sources-count">
-                  {summary.sources?.length || 0} sources
-                </span>
-              </div>
-            </div>
+            </article>
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 };

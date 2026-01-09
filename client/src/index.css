@@ -1,74 +1,155 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+:root {
+  --font-sans: "Space Grotesk", "IBM Plex Sans", "Segoe UI", system-ui, -apple-system,
+    BlinkMacSystemFont, sans-serif;
+  --color-ink: #09111f;
+  --color-muted: #6b7a8e;
+  --color-subtle: #94a0b5;
+  --accent-primary: #ff5c8a;
+  --accent-secondary: #7c3aed;
+  --surface-0: #05070f;
+  --surface-1: rgba(11, 16, 28, 0.82);
+  --surface-2: rgba(255, 255, 255, 0.07);
+  --surface-3: rgba(255, 255, 255, 0.04);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --border-soft: rgba(255, 255, 255, 0.12);
+  --glow: 0 25px 55px rgba(124, 58, 237, 0.25);
+  --success: #34d399;
+  --danger: #f87171;
+  --focus-ring: 0 0 0 3px rgba(255, 92, 138, 0.35);
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-#root {
-  width: 100%;
-  min-height: 100vh;
-}
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  background: radial-gradient(circle at top, #111633 0%, #05070f 55%);
+  color: #f8fafc;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
   min-height: 100vh;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
+  border: none;
+  background: none;
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: transparent;
+}
+
+.status-message {
+  display: flex;
+  gap: 0.75rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2.5rem;
+  border-radius: 20px;
+  border: 1px dashed var(--border-soft);
+  background: var(--surface-1);
+  color: var(--color-subtle);
+}
+
+.status-message--loading {
+  color: #fff;
+}
+
+.status-message--error {
+  color: var(--danger);
+  border-color: rgba(248, 113, 113, 0.6);
+}
+
+.status-message--empty {
+  color: var(--color-muted);
+}
+
+.ghost-button {
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 0.5rem 1.25rem;
+  background: transparent;
+  color: #fff;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.ghost-button:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  background: rgba(255, 92, 138, 0.1);
+}
+
+.primary-button {
+  border-radius: 999px;
+  padding: 0.85rem 1.8rem;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  box-shadow: 0 15px 30px rgba(255, 92, 138, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 25px 45px rgba(124, 58, 237, 0.35);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font-size: 0.75rem;
+  color: var(--color-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

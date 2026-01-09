@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import type { SummaryWithSources } from "../types";
 import { summaryApi } from "../services/api";
 import ReactMarkdown from "react-markdown";
+import "./summary-shared.css";
+import "./SummaryDetail.css";
 
 export const SummaryDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,60 +34,93 @@ export const SummaryDetail = () => {
   };
 
   if (loading) {
-    return <div className="loading">Loading summary...</div>;
+    return (
+      <div className="status-message status-message--loading" role="status">
+        Loading summary...
+      </div>
+    );
   }
 
   if (error) {
     return (
-      <div className="error-container">
-        <div className="error">{error}</div>
-        <button onClick={() => navigate("/")}>Go Back</button>
+      <div className="status-message status-message--error" role="alert">
+        {error}
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={() => navigate("/")}
+        >
+          Return home
+        </button>
       </div>
     );
   }
 
   if (!summary) {
-    return <div className="no-data">Summary not found</div>;
+    return (
+      <div className="status-message status-message--empty">
+        Summary not found
+      </div>
+    );
   }
 
-  return (
-    <div className="summary-detail">
-      <button className="back-button" onClick={() => navigate(-1)}>
-        ← Back
-      </button>
+  const formattedDate = new Date(summary.created_at).toLocaleString(undefined, {
+    dateStyle: "full",
+    timeStyle: "short",
+  });
 
-      <div className="summary-header">
-        <h1>{summary.topic} News Summary</h1>
-        <div className="summary-meta">
-          <span className="topic-badge">{summary.topic}</span>
-          <span className="date">
-            {new Date(summary.created_at).toLocaleString()}
-          </span>
-        </div>
+  return (
+    <section className="summary-detail-panel summary-panel">
+      <div className="detail-toolbar">
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={() => navigate(-1)}
+        >
+          ← Back
+        </button>
       </div>
 
-      <div className="summary-content">
-        <ReactMarkdown>{summary.summary_markdown}</ReactMarkdown>
+      <header className="summary-detail__header">
+        <p className="eyebrow">Deep dive</p>
+        <h2>{summary.topic} news summary</h2>
+        <div className="summary-pill-group">
+          <span className="topic-pill">{summary.topic}</span>
+          <span className="meta-pill">{formattedDate}</span>
+        </div>
+      </header>
+
+      <div className="summary-body markdown-surface">
+        <div className="markdown-reset">
+          <ReactMarkdown>{summary.summary_markdown}</ReactMarkdown>
+        </div>
       </div>
 
       {summary.sources && summary.sources.length > 0 && (
-        <div className="sources-section">
-          <h2>Source Links ({summary.sources.length})</h2>
-          <ul className="sources-list">
+        <div className="source-stack">
+          <div className="source-stack__header">
+            <h3>Source links</h3>
+            <span>{summary.sources.length} references</span>
+          </div>
+          <div className="source-grid">
             {summary.sources.map((source, index) => (
-              <li key={source.id || index} className="source-item">
-                <a href={source.url} target="_blank" rel="noopener noreferrer">
+              <article key={source.id || index} className="source-card">
+                <a
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {source.title}
                 </a>
-                <div className="source-meta">
-                  <span className="subreddit">r/{source.subreddit}</span>
-                  <span className="score">↑ {source.score}</span>
+                <div className="source-card__meta">
+                  <span className="pill pill--subreddit">r/{source.subreddit}</span>
+                  <span className="pill pill--score">↑ {source.score}</span>
                 </div>
-              </li>
+              </article>
             ))}
-          </ul>
+          </div>
         </div>
       )}
-    </div>
+    </section>
   );
 };

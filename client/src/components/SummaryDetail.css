@@ -1,0 +1,29 @@
+.summary-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.detail-toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.summary-detail__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.summary-detail__header h2 {
+  font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+  color: #fff;
+}
+
+.summary-detail__header .eyebrow {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.source-stack__header h3 {
+  color: #fff;
+}
