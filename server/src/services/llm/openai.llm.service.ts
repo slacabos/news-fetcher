@@ -4,12 +4,34 @@ import { NewsItem } from "../../models/types";
 import { BaseLLMService } from "./base.llm.service";
 import { LLMLogger } from "./logger.service";
 
-// OpenAI pricing per 1M tokens (as of January 2026)
+// OpenAI pricing per 1M tokens (January 2026 public sheet)
 // https://openai.com/pricing
+type TextResponseInput = Array<{
+  type: "message";
+  role: "system" | "user" | "developer";
+  content: Array<{ type: "input_text"; text: string }>;
+}>;
+
+type TextResponse = {
+  output?: Array<{
+    content?: Array<{ type?: string; text?: string }>;
+  }>;
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+  };
+};
+
 const MODEL_PRICING: Record<
   string,
   { input: number; output: number } // USD per 1M tokens
 > = {
+  "gpt-5-mini": { input: 0.2, output: 0.8 },
+  "gpt-4.1": { input: 15.0, output: 60.0 },
+  "gpt-4.1-mini": { input: 1.0, output: 4.0 },
+  "gpt-4o": { input: 5.0, output: 15.0 },
+  "gpt-4o-mini": { input: 0.15, output: 0.6 },
   "gpt-4-turbo-preview": { input: 10.0, output: 30.0 },
   "gpt-4-turbo": { input: 10.0, output: 30.0 },
   "gpt-4": { input: 30.0, output: 60.0 },
@@ -22,7 +44,6 @@ export class OpenAILLMService extends BaseLLMService {
   private client: OpenAI;
   private model: string;
   private logger: LLMLogger;
-  private temperature: number;
 
   constructor(logger: LLMLogger) {
     super();
@@ -35,11 +56,9 @@ export class OpenAILLMService extends BaseLLMService {
 
     this.client = new OpenAI({
       apiKey: config.llm.openai.apiKey,
-      organization: config.llm.openai.organization || undefined,
     });
 
     this.model = config.llm.openai.model;
-    this.temperature = config.llm.openai.temperature;
     this.logger = logger;
   }
 
@@ -65,24 +84,25 @@ export class OpenAILLMService extends BaseLLMService {
     // Sort by score to prioritize important posts
     const sortedItems = [...newsItems].sort((a, b) => b.score - a.score);
 
-    // Build messages for ChatCompletion API
+    // Build messages and convert to Responses API input
     const messages = this.buildMessages(sortedItems, topic);
+    const responseInput = this.transformForResponses(messages);
 
     try {
-      const response = await this.client.chat.completions.create({
+      const response = await this.client.responses.create({
         model: this.model,
-        messages,
-        temperature: this.temperature,
-        max_tokens: 2000,
+        max_output_tokens: 2000,
+        input: responseInput,
       });
 
-      const summary = response.choices[0]?.message?.content?.trim() || "";
+      const summary = this.extractTextFromResponse(response as TextResponse);
       const latencyMs = Date.now() - startTime;
 
       // Extract token usage and calculate cost
-      const inputTokens = response.usage?.prompt_tokens || 0;
-      const outputTokens = response.usage?.completion_tokens || 0;
-      const totalTokens = response.usage?.total_tokens || 0;
+      const usage = (response as TextResponse).usage;
+      const inputTokens = usage?.input_tokens || 0;
+      const outputTokens = usage?.output_tokens || 0;
+      const totalTokens = usage?.total_tokens || inputTokens + outputTokens;
       const estimatedCost = this.calculateCost(inputTokens, outputTokens);
 
       // Log successful request
@@ -126,7 +146,7 @@ export class OpenAILLMService extends BaseLLMService {
   }
 
   /**
-   * Build optimized messages for OpenAI ChatCompletion API
+   * Build optimized messages for OpenAI Responses API
    * Uses system message for role definition and user message for content
    */
   private buildMessages(
@@ -185,6 +205,41 @@ List all source posts in this format:
 - Maintain a professional, objective tone`,
       },
     ];
+  }
+
+  private transformForResponses(
+    messages: OpenAI.Chat.ChatCompletionMessageParam[]
+  ): TextResponseInput {
+    return messages.map((message) => ({
+      type: "message",
+      role:
+        message.role === "assistant"
+          ? "developer"
+          : (message.role as "system" | "user" | "developer"),
+      content: [
+        {
+          type: "input_text",
+          text:
+            typeof message.content === "string"
+              ? message.content
+              : JSON.stringify(message.content),
+        },
+      ],
+    }));
+  }
+
+  private extractTextFromResponse(response: TextResponse): string {
+    const chunks = response.output
+      ?.flatMap((item) => item.content ?? [])
+      ?.filter((content) => content.type === "output_text")
+      ?.map((content) =>
+        "text" in content && typeof content.text === "string"
+          ? content.text
+          : ""
+      )
+      ?.filter(Boolean);
+
+    return chunks && chunks.length > 0 ? chunks.join("\n").trim() : "";
   }
 
   /**
