@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import { SummaryWithSources } from '../types';
-import { summaryApi } from '../services/api';
-import ReactMarkdown from 'react-markdown';
+import { useState, useEffect } from "react";
+import type { SummaryWithSources } from "../types";
+import { summaryApi } from "../services/api";
+import ReactMarkdown from "react-markdown";
 
 export const LatestSummary = () => {
   const [summary, setSummary] = useState<SummaryWithSources | null>(null);
@@ -19,7 +19,7 @@ export const LatestSummary = () => {
       const data = await summaryApi.getLatest();
       setSummary(data);
     } catch (err) {
-      setError('Failed to load latest summary');
+      setError("Failed to load latest summary");
       console.error(err);
     } finally {
       setLoading(false);
@@ -44,7 +44,9 @@ export const LatestSummary = () => {
         <h1>Latest AI News Summary</h1>
         <div className="summary-meta">
           <span className="topic-badge">{summary.topic}</span>
-          <span className="date">{new Date(summary.created_at).toLocaleString()}</span>
+          <span className="date">
+            {new Date(summary.created_at).toLocaleString()}
+          </span>
         </div>
       </div>
 

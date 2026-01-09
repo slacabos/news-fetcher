@@ -1,18 +1,21 @@
-import express from 'express';
-import cors from 'cors';
-import { config } from './config';
-import { schedulerService } from './services/scheduler.service';
-import summariesRouter from './routes/summaries';
-import topicsRouter from './routes/topics';
-import fetchRouter from './routes/fetch';
+import express from "express";
+import cors from "cors";
+import { config } from "./config";
+import { schedulerService } from "./services/scheduler.service";
+import summariesRouter from "./routes/summaries";
+import topicsRouter from "./routes/topics";
+import fetchRouter from "./routes/fetch";
+import llmRouter from "./routes/llm";
 
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: 'http://localhost:5173', // Vite dev server
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: "http://localhost:5173", // Vite dev server
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Request logging
@@ -22,38 +25,49 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/api/summaries', summariesRouter);
-app.use('/api/topics', topicsRouter);
-app.use('/api/fetch', fetchRouter);
+app.use("/api/summaries", summariesRouter);
+app.use("/api/topics", topicsRouter);
+app.use("/api/fetch", fetchRouter);
+app.use("/api/llm", llmRouter);
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok',
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
     timestamp: new Date().toISOString(),
   });
 });
 
 // Root route
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'News Fetcher API',
-    version: '1.0.0',
+app.get("/", (req, res) => {
+  res.json({
+    message: "News Fetcher API",
+    version: "1.0.0",
     endpoints: {
-      health: '/api/health',
-      summaries: '/api/summaries',
-      latestSummary: '/api/summaries/latest',
-      topics: '/api/topics',
-      fetch: '/api/fetch',
+      health: "/api/health",
+      summaries: "/api/summaries",
+      latestSummary: "/api/summaries/latest",
+      topics: "/api/topics",
+      fetch: "/api/fetch",
+      llmStats: "/api/llm/stats",
+      llmLogs: "/api/llm/logs",
+      llmProvider: "/api/llm/provider",
     },
   });
 });
 
 // Error handling
-app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Internal server error' });
-});
+app.use(
+  (
+    err: Error,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    console.error("Unhandled error:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+);
 
 // Start server
 const PORT = config.port;
@@ -68,14 +82,14 @@ app.listen(PORT, () => {
 });
 
 // Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('\nShutting down gracefully...');
+process.on("SIGINT", () => {
+  console.log("\nShutting down gracefully...");
   schedulerService.stop();
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
-  console.log('\nShutting down gracefully...');
+process.on("SIGTERM", () => {
+  console.log("\nShutting down gracefully...");
   schedulerService.stop();
   process.exit(0);
 });

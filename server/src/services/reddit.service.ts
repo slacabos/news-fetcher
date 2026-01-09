@@ -1,7 +1,7 @@
-import Snoowrap from 'snoowrap';
-import { config } from '../config';
-import { NewsItem } from '../models/types';
-import { db } from '../database';
+import Snoowrap from "snoowrap";
+import { config } from "../config";
+import { NewsItem } from "../models/types";
+import { db } from "../database";
 
 export class RedditService {
   private reddit: Snoowrap | null = null;
@@ -9,7 +9,9 @@ export class RedditService {
   private getReddit(): Snoowrap {
     if (!this.reddit) {
       if (!config.reddit.clientId || !config.reddit.clientSecret) {
-        throw new Error('Reddit API credentials not configured. Please set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET in .env file');
+        throw new Error(
+          "Reddit API credentials not configured. Please set REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET in .env file"
+        );
       }
       this.reddit = new Snoowrap({
         userAgent: config.reddit.userAgent,
@@ -31,8 +33,8 @@ export class RedditService {
     const subreddits: string[] = JSON.parse(topic.subreddits);
 
     console.log(`Fetching posts for topic: ${topicName}`);
-    console.log(`Subreddits: ${subreddits.join(', ')}`);
-    console.log(`Keywords: ${keywords.join(', ')}`);
+    console.log(`Subreddits: ${subreddits.join(", ")}`);
+    console.log(`Keywords: ${keywords.join(", ")}`);
 
     const posts = new Map<string, NewsItem>();
     const oneDayAgo = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
@@ -41,14 +43,16 @@ export class RedditService {
     for (const subreddit of subreddits) {
       try {
         console.log(`Fetching from r/${subreddit}...`);
-        const subredditPosts = await reddit.getSubreddit(subreddit).getHot({ limit: 50 });
-        
+        const subredditPosts = await reddit
+          .getSubreddit(subreddit)
+          .getHot({ limit: 50 });
+
         for (const post of subredditPosts) {
           // Skip if post is older than 24 hours
           if (post.created_utc < oneDayAgo) continue;
 
           const matchedKeywords = this.findMatchingKeywords(
-            post.title + ' ' + (post.selftext || ''),
+            post.title + " " + (post.selftext || ""),
             keywords
           );
 
@@ -59,7 +63,7 @@ export class RedditService {
               url: `https://reddit.com${post.permalink}`,
               subreddit: post.subreddit.display_name,
               score: post.score,
-              matched_keywords: matchedKeywords.join(', '),
+              matched_keywords: matchedKeywords.join(", "),
               created_at: post.created_utc,
             };
 
@@ -75,13 +79,14 @@ export class RedditService {
     }
 
     // Also search across Reddit using keywords
-    for (const keyword of keywords.slice(0, 3)) { // Limit keyword searches to avoid rate limits
+    for (const keyword of keywords.slice(0, 3)) {
+      // Limit keyword searches to avoid rate limits
       try {
         console.log(`Searching Reddit for keyword: ${keyword}...`);
         const searchResults = await reddit.search({
           query: keyword,
-          time: 'day',
-          sort: 'hot',
+          time: "day",
+          sort: "hot",
           limit: 20,
         });
 
@@ -89,7 +94,7 @@ export class RedditService {
           if (post.created_utc < oneDayAgo) continue;
 
           const matchedKeywords = this.findMatchingKeywords(
-            post.title + ' ' + (post.selftext || ''),
+            post.title + " " + (post.selftext || ""),
             keywords
           );
 
@@ -98,7 +103,7 @@ export class RedditService {
             url: `https://reddit.com${post.permalink}`,
             subreddit: post.subreddit.display_name,
             score: post.score,
-            matched_keywords: matchedKeywords.join(', '),
+            matched_keywords: matchedKeywords.join(", "),
             created_at: post.created_utc,
           };
 
@@ -136,7 +141,7 @@ export class RedditService {
 
   private findMatchingKeywords(text: string, keywords: string[]): string[] {
     const lowerText = text.toLowerCase();
-    return keywords.filter(keyword => 
+    return keywords.filter((keyword) =>
       lowerText.includes(keyword.toLowerCase())
     );
   }

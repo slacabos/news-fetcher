@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { SummaryWithSources } from '../types';
-import { summaryApi } from '../services/api';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import type { SummaryWithSources } from "../types";
+import { summaryApi } from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 export const SummaryHistory = () => {
   const [summaries, setSummaries] = useState<SummaryWithSources[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dateFilter, setDateFilter] = useState('');
-  const [topicFilter, setTopicFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState("");
+  const [topicFilter, setTopicFilter] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,11 +22,11 @@ export const SummaryHistory = () => {
       const filters: { date?: string; topic?: string } = {};
       if (dateFilter) filters.date = dateFilter;
       if (topicFilter) filters.topic = topicFilter;
-      
+
       const data = await summaryApi.getAll(filters);
       setSummaries(data);
     } catch (err) {
-      setError('Failed to load summaries');
+      setError("Failed to load summaries");
       console.error(err);
     } finally {
       setLoading(false);
@@ -75,8 +75,8 @@ export const SummaryHistory = () => {
           <button
             className="clear-filters"
             onClick={() => {
-              setDateFilter('');
-              setTopicFilter('');
+              setDateFilter("");
+              setTopicFilter("");
             }}
           >
             Clear Filters
@@ -96,7 +96,9 @@ export const SummaryHistory = () => {
             >
               <div className="card-header">
                 <span className="topic-badge">{summary.topic}</span>
-                <span className="date">{new Date(summary.created_at).toLocaleDateString()}</span>
+                <span className="date">
+                  {new Date(summary.created_at).toLocaleDateString()}
+                </span>
               </div>
               <div className="card-preview">
                 {summary.summary_markdown.slice(0, 200)}...

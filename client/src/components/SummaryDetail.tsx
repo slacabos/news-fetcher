@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { SummaryWithSources } from '../types';
-import { summaryApi } from '../services/api';
-import ReactMarkdown from 'react-markdown';
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import type { SummaryWithSources } from "../types";
+import { summaryApi } from "../services/api";
+import ReactMarkdown from "react-markdown";
 
 export const SummaryDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +24,7 @@ export const SummaryDetail = () => {
       const data = await summaryApi.getById(summaryId);
       setSummary(data);
     } catch (err) {
-      setError('Failed to load summary');
+      setError("Failed to load summary");
       console.error(err);
     } finally {
       setLoading(false);
@@ -39,7 +39,7 @@ export const SummaryDetail = () => {
     return (
       <div className="error-container">
         <div className="error">{error}</div>
-        <button onClick={() => navigate('/')}>Go Back</button>
+        <button onClick={() => navigate("/")}>Go Back</button>
       </div>
     );
   }
@@ -58,7 +58,9 @@ export const SummaryDetail = () => {
         <h1>{summary.topic} News Summary</h1>
         <div className="summary-meta">
           <span className="topic-badge">{summary.topic}</span>
-          <span className="date">{new Date(summary.created_at).toLocaleString()}</span>
+          <span className="date">
+            {new Date(summary.created_at).toLocaleString()}
+          </span>
         </div>
       </div>
 

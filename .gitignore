@@ -9,7 +9,13 @@ yarn.lock
 
 # Database
 *.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
 *.db
+*.db-shm
+*.db-wal
+*.db-journal
 
 # Build outputs
 dist/

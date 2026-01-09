@@ -1,17 +1,30 @@
-import { redditService } from './reddit.service';
-import { ollamaService } from './ollama.service';
-import { db } from '../database';
-import { Summary, SummaryWithSources } from '../models/types';
+import { redditService } from "./reddit.service";
+import { mockRedditService } from "./mock-reddit.service";
+import { llmService } from "./llm/llm.factory";
+import { db } from "../database";
+import { config } from "../config";
+import { Summary, SummaryWithSources } from "../models/types";
 
 export class SummaryService {
-  async generateSummaryForTopic(topicName: string): Promise<SummaryWithSources> {
-    console.log(`\n=== Starting summary generation for topic: ${topicName} ===`);
+  async generateSummaryForTopic(
+    topicName: string
+  ): Promise<SummaryWithSources> {
+    console.log(
+      `\n=== Starting summary generation for topic: ${topicName} ===`
+    );
+
+    // Use mock or real Reddit service based on configuration
+    const service = config.useMockData ? mockRedditService : redditService;
+    console.log(`Using ${config.useMockData ? "MOCK" : "REAL"} Reddit service`);
+    console.log(
+      `Using ${llmService.getProviderName()} LLM (${llmService.getModelName()})`
+    );
 
     // Fetch news items from Reddit
-    const newsItems = await redditService.fetchNewsByTopic(topicName);
+    const newsItems = await service.fetchNewsByTopic(topicName);
 
     if (newsItems.length === 0) {
-      console.log('No news items found, creating empty summary');
+      console.log("No news items found, creating empty summary");
       const summaryText = `No new posts found for ${topicName} in the last 24 hours.`;
       const summaryId = db.insertSummary({
         topic: topicName,
@@ -28,8 +41,11 @@ export class SummaryService {
       };
     }
 
-    // Generate summary using Ollama
-    const summaryMarkdown = await ollamaService.generateSummary(newsItems, topicName);
+    // Generate summary using LLM service
+    const summaryMarkdown = await llmService.generateSummary(
+      newsItems,
+      topicName
+    );
 
     // Save summary to database
     const summaryId = db.insertSummary({
@@ -70,9 +86,12 @@ export class SummaryService {
     };
   }
 
-  getSummariesWithSources(filters?: { date?: string; topic?: string }): SummaryWithSources[] {
+  getSummariesWithSources(filters?: {
+    date?: string;
+    topic?: string;
+  }): SummaryWithSources[] {
     const summaries = db.getSummaries(filters);
-    return summaries.map(summary => ({
+    return summaries.map((summary) => ({
       ...summary,
       sources: summary.id ? db.getSourcesBySummaryId(summary.id) : [],
     }));
