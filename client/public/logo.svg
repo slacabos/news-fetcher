@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="gAccent" x1="40" y1="40" x2="216" y2="216" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E355A0"/>
+      <stop offset="0.55" stop-color="#C04EBC"/>
+      <stop offset="1" stop-color="#9941D7"/>
+    </linearGradient>
+    <linearGradient id="gMetal" x1="70" y1="70" x2="186" y2="186" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F6F6F7"/>
+      <stop offset="1" stop-color="#D6D4DD"/>
+    </linearGradient>
+    <linearGradient id="gGlass" x1="88" y1="92" x2="168" y2="156" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#101222" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#090C1B" stop-opacity="0.95"/>
+    </linearGradient>
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feColorMatrix in="b" type="matrix"
+        values="1 0 0 0 0
+                0 1 0 0 0
+                0 0 1 0 0
+                0 0 0 0.35 0" result="g"/>
+      <feMerge>
+        <feMergeNode in="g"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Accent halo (no background; transparent canvas) -->
+  <circle cx="128" cy="128" r="108" fill="none" stroke="url(#gAccent)" stroke-width="10" opacity="0.55" filter="url(#softGlow)"/>
+  <circle cx="128" cy="128" r="96" fill="none" stroke="#2B1F47" stroke-width="2" opacity="0.75"/>
+
+  <!-- Robot head -->
+  <g>
+    <!-- antenna -->
+    <rect x="123" y="44" width="10" height="22" rx="5" fill="#2B1F47"/>
+    <circle cx="128" cy="40" r="10" fill="url(#gAccent)"/>
+
+    <!-- head shell -->
+    <rect x="56" y="60" width="144" height="112" rx="44" fill="url(#gMetal)"/>
+    <!-- side pods -->
+    <rect x="44" y="96" width="28" height="40" rx="14" fill="#C04EBC" opacity="0.95"/>
+    <rect x="184" y="96" width="28" height="40" rx="14" fill="#C04EBC" opacity="0.95"/>
+
+    <!-- face window -->
+    <rect x="78" y="84" width="100" height="68" rx="26" fill="url(#gGlass)"/>
+    <!-- eyes -->
+    <circle cx="112" cy="118" r="10" fill="#F6D9EF"/>
+    <circle cx="144" cy="118" r="10" fill="#F6D9EF"/>
+    <!-- smile -->
+    <path d="M116 138c8 8 16 8 24 0" fill="none" stroke="#F6D9EF" stroke-width="6" stroke-linecap="round"/>
+    <!-- highlight -->
+    <path d="M88 92c20-18 52-18 72 0" fill="none" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <!-- Newspaper -->
+  <g transform="translate(0,10)">
+    <!-- arms -->
+    <path d="M70 176c-10 2-18 10-18 20v14c0 8 6 14 14 14h10" fill="none" stroke="#2B1F47" stroke-width="10" stroke-linecap="round"/>
+    <path d="M186 176c10 2 18 10 18 20v14c0 8-6 14-14 14h-10" fill="none" stroke="#2B1F47" stroke-width="10" stroke-linecap="round"/>
+
+    <!-- paper body -->
+    <path d="M76 168h104a18 18 0 0 1 18 18v44a18 18 0 0 1-18 18H92a22 22 0 0 1-22-22v-40a18 18 0 0 1 6-13z"
+          fill="#F6F6F7"/>
+    <!-- fold -->
+    <path d="M128 168v80" stroke="#D6D4DD" stroke-width="3"/>
+    <!-- headline blocks -->
+    <rect x="88" y="188" width="56" height="10" rx="5" fill="#2B1F47" opacity="0.35"/>
+    <rect x="88" y="206" width="44" height="8" rx="4" fill="#2B1F47" opacity="0.25"/>
+    <rect x="140" y="206" width="36" height="8" rx="4" fill="#2B1F47" opacity="0.25"/>
+    <rect x="140" y="188" width="40" height="10" rx="5" fill="#2B1F47" opacity="0.35"/>
+
+    <!-- accent badge -->
+    <circle cx="100" cy="232" r="10" fill="url(#gAccent)"/>
+  </g>
+
+  <!-- sparkles -->
+  <g opacity="0.9">
+    <path d="M206 72l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="#E355A0"/>
+    <path d="M52 74l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#9941D7"/>
+  </g>
+</svg>

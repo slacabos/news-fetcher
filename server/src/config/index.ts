@@ -1,6 +1,10 @@
 import dotenv from "dotenv";
+import rawModelPricing from "./model-pricing.json";
+import { assertModelPricingMap } from "../utils/schema-guards";
 
 dotenv.config({ path: "../.env" });
+
+const modelPricing = assertModelPricingMap(rawModelPricing);
 
 export const config = {
   port: parseInt(process.env.PORT || "3000", 10),
@@ -26,6 +30,8 @@ export const config = {
       apiKey: process.env.OPENAI_API_KEY || "",
       model: process.env.OPENAI_MODEL || "gpt-4-turbo-preview",
     },
+
+    pricing: modelPricing,
 
     logging: {
       enabled: process.env.LLM_LOGGING_ENABLED !== "false", // true by default

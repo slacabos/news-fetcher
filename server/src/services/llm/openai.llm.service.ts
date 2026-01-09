@@ -1,8 +1,14 @@
 import OpenAI from "openai";
 import { config } from "../../config";
 import { NewsItem } from "../../models/types";
+import {
+  assertTextResponse,
+  ModelPricingMap,
+  TextResponse,
+} from "../../utils/schema-guards";
 import { BaseLLMService } from "./base.llm.service";
 import { LLMLogger } from "./logger.service";
+import { buildSummaryMessages } from "./prompt-builders";
 
 // OpenAI pricing per 1M tokens (January 2026 public sheet)
 // https://openai.com/pricing
@@ -12,38 +18,11 @@ type TextResponseInput = Array<{
   content: Array<{ type: "input_text"; text: string }>;
 }>;
 
-type TextResponse = {
-  output?: Array<{
-    content?: Array<{ type?: string; text?: string }>;
-  }>;
-  usage?: {
-    input_tokens?: number;
-    output_tokens?: number;
-    total_tokens?: number;
-  };
-};
-
-const MODEL_PRICING: Record<
-  string,
-  { input: number; output: number } // USD per 1M tokens
-> = {
-  "gpt-5-mini": { input: 0.2, output: 0.8 },
-  "gpt-4.1": { input: 15.0, output: 60.0 },
-  "gpt-4.1-mini": { input: 1.0, output: 4.0 },
-  "gpt-4o": { input: 5.0, output: 15.0 },
-  "gpt-4o-mini": { input: 0.15, output: 0.6 },
-  "gpt-4-turbo-preview": { input: 10.0, output: 30.0 },
-  "gpt-4-turbo": { input: 10.0, output: 30.0 },
-  "gpt-4": { input: 30.0, output: 60.0 },
-  "gpt-4-32k": { input: 60.0, output: 120.0 },
-  "gpt-3.5-turbo": { input: 0.5, output: 1.5 },
-  "gpt-3.5-turbo-16k": { input: 3.0, output: 4.0 },
-};
-
 export class OpenAILLMService extends BaseLLMService {
   private client: OpenAI;
   private model: string;
   private logger: LLMLogger;
+  private modelPricing: ModelPricingMap;
 
   constructor(logger: LLMLogger) {
     super();
@@ -60,6 +39,7 @@ export class OpenAILLMService extends BaseLLMService {
 
     this.model = config.llm.openai.model;
     this.logger = logger;
+    this.modelPricing = config.llm.pricing as ModelPricingMap;
   }
 
   getProviderName(): string {
@@ -85,7 +65,10 @@ export class OpenAILLMService extends BaseLLMService {
     const sortedItems = [...newsItems].sort((a, b) => b.score - a.score);
 
     // Build messages and convert to Responses API input
-    const messages = this.buildMessages(sortedItems, topic);
+    const messages = buildSummaryMessages({
+      topic,
+      newsItems: sortedItems,
+    });
     const responseInput = this.transformForResponses(messages);
 
     try {
@@ -95,11 +78,12 @@ export class OpenAILLMService extends BaseLLMService {
         input: responseInput,
       });
 
-      const summary = this.extractTextFromResponse(response as TextResponse);
+      const validatedResponse = assertTextResponse(response);
+      const summary = this.extractTextFromResponse(validatedResponse);
       const latencyMs = Date.now() - startTime;
 
       // Extract token usage and calculate cost
-      const usage = (response as TextResponse).usage;
+      const usage = validatedResponse.usage;
       const inputTokens = usage?.input_tokens || 0;
       const outputTokens = usage?.output_tokens || 0;
       const totalTokens = usage?.total_tokens || inputTokens + outputTokens;
@@ -145,68 +129,6 @@ export class OpenAILLMService extends BaseLLMService {
     }
   }
 
-  /**
-   * Build optimized messages for OpenAI Responses API
-   * Uses system message for role definition and user message for content
-   */
-  private buildMessages(
-    newsItems: NewsItem[],
-    topic: string
-  ): OpenAI.Chat.ChatCompletionMessageParam[] {
-    const postsText = newsItems
-      .map(
-        (item, index) =>
-          `${index + 1}. **"${item.title}"**\n   - Subreddit: r/${
-            item.subreddit
-          }\n   - Score: ${item.score} upvotes\n   - URL: ${item.url}`
-      )
-      .join("\n\n");
-
-    return [
-      {
-        role: "system",
-        content: `You are an expert AI news analyst specializing in ${topic}. Your role is to:
-- Analyze Reddit posts and identify key trends and developments
-- Create comprehensive, well-structured markdown summaries
-- Maintain objectivity and technical accuracy
-- Prioritize high-quality, high-engagement content
-- Present information in a clear, newsworthy format`,
-      },
-      {
-        role: "user",
-        content: `Analyze these ${newsItems.length} Reddit posts about ${topic} from the last 24 hours and create a comprehensive news summary.
-
-**Reddit Posts:**
-${postsText}
-
-**Create a markdown summary with these exact sections:**
-
-## Overview
-Provide 2-3 sentences summarizing the main themes, trends, and overall sentiment in the ${topic} community today.
-
-## Key Developments
-- List major developments, announcements, or breakthroughs
-- Each bullet should be 1-2 sentences
-- Focus on concrete, newsworthy items
-- Order by significance (highest-scored posts first)
-
-## Notable Highlights
-Present 3-5 standout items in this format:
-- **Topic/Company Name**: Brief description of the highlight or announcement
-
-## Sources
-List all source posts in this format:
-- [Post Title](URL) - r/subreddit (score upvotes)
-
-**Guidelines:**
-- Use proper markdown formatting throughout
-- Be concise but informative
-- Focus on facts, not speculation
-- Maintain a professional, objective tone`,
-      },
-    ];
-  }
-
   private transformForResponses(
     messages: OpenAI.Chat.ChatCompletionMessageParam[]
   ): TextResponseInput {
@@ -246,7 +168,10 @@ List all source posts in this format:
    * Calculate estimated cost based on token usage and model pricing
    */
   private calculateCost(inputTokens: number, outputTokens: number): number {
-    const pricing = MODEL_PRICING[this.model] || { input: 10.0, output: 30.0 };
+    const pricing = this.modelPricing?.[this.model] || {
+      input: 10.0,
+      output: 30.0,
+    };
 
     const inputCost = (inputTokens / 1_000_000) * pricing.input;
     const outputCost = (outputTokens / 1_000_000) * pricing.output;
