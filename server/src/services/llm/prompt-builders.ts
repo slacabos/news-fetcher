@@ -19,7 +19,7 @@ export function buildSummaryMessages(
 
 function buildSystemPrompt(topic: string): string {
   return `You are an expert AI news analyst specializing in ${topic}. Your role is to:
-- Analyze Reddit posts and identify key trends and developments
+- Analyze news posts and identify key trends and developments
 - Create comprehensive, well-structured markdown summaries
 - Maintain objectivity and technical accuracy
 - Prioritize high-quality, high-engagement content
@@ -27,15 +27,17 @@ function buildSystemPrompt(topic: string): string {
 }
 
 function buildUserPrompt(topic: string, newsItems: NewsItem[]): string {
-  return `Analyze these ${newsItems.length} Reddit posts about ${topic} from the last 24 hours and create a comprehensive news summary.
+  return `Analyze these ${
+    newsItems.length
+  } stories/posts about ${topic} from the last 24 hours and create a comprehensive news summary.
 
-**Reddit Posts:**
+**News Posts:**
 ${formatNewsItems(newsItems)}
 
 **Create a markdown summary with these exact sections:**
 
 ## Overview
-Provide 2-3 sentences summarizing the main themes, trends, and overall sentiment in the ${topic} community today.
+Provide 2-3 sentences summarizing the main themes, trends, and overall sentiment in ${topic} today.
 
 ## Key Developments
 - List major developments, announcements, or breakthroughs
@@ -49,7 +51,7 @@ Present 3-5 standout items in this format:
 
 ## Sources
 List all source posts in this format:
-- [Post Title](URL) - r/subreddit (score upvotes)
+- [Post Title](URL) - Source (score)
 
 **Guidelines:**
 - Use proper markdown formatting throughout
@@ -62,7 +64,9 @@ function formatNewsItems(newsItems: NewsItem[]): string {
   return newsItems
     .map(
       (item, index) =>
-        `${index + 1}. **"${item.title}"**\n   - Subreddit: r/${item.subreddit}\n   - Score: ${item.score} upvotes\n   - URL: ${item.url}`
+        `${index + 1}. **"${item.title}"**\n   - Source: ${
+          item.source
+        }\n   - Score: ${item.score}\n   - URL: ${item.url}`
     )
     .join("\n\n");
 }

@@ -62,7 +62,7 @@ function App() {
         </main>
 
         <footer className="site-footer">
-          <p>⚡ Curated Reddit signals meets LLM synthesis.</p>
+          <p>⚡ Latest news syntetised by an LLM.</p>
           <p>Powered by Ollama, ready for OpenAI.</p>
         </footer>
       </div>

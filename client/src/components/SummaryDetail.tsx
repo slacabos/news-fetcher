@@ -109,8 +109,10 @@ export const SummaryDetail = () => {
                   {source.title}
                 </a>
                 <div className="source-card__meta">
-                  <span className="pill pill--subreddit">
-                    r/{source.subreddit}
+                  <span className="pill pill--source">
+                    {source.source_type === "reddit"
+                      ? `r/${source.source}`
+                      : source.source}
                   </span>
                   <span className="pill pill--score">↑ {source.score}</span>
                 </div>

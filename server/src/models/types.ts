@@ -2,7 +2,8 @@ export interface NewsItem {
   id?: number;
   title: string;
   url: string;
-  subreddit: string;
+  source: string;
+  source_type: string;
   score: number;
   matched_keywords: string;
   created_at: number;
@@ -25,7 +26,7 @@ export interface Topic {
   id?: number;
   name: string;
   keywords: string;
-  subreddits: string;
+  sources: string;
   active: number;
 }
 

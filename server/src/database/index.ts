@@ -17,7 +17,8 @@ export class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         url TEXT NOT NULL UNIQUE,
-        subreddit TEXT NOT NULL,
+        source TEXT NOT NULL,
+        source_type TEXT NOT NULL,
         score INTEGER DEFAULT 0,
         matched_keywords TEXT,
         created_at INTEGER NOT NULL
@@ -42,7 +43,7 @@ export class DatabaseService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
         keywords TEXT NOT NULL,
-        subreddits TEXT NOT NULL,
+        sources TEXT NOT NULL,
         active INTEGER DEFAULT 1
       );
 
@@ -51,37 +52,39 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS idx_summaries_topic ON summaries(topic);
     `);
 
-    // Seed initial AI topic if not exists
-    const existingTopic = this.db
-      .prepare("SELECT * FROM topics WHERE name = ?")
-      .get("AI");
-    if (!existingTopic) {
-      const topicConfig = config.topics.ai;
-      this.db
-        .prepare(
-          `
-        INSERT INTO topics (name, keywords, subreddits, active)
-        VALUES (?, ?, ?, 1)
-      `
-        )
-        .run(
-          topicConfig.name,
-          JSON.stringify(topicConfig.keywords),
-          JSON.stringify(topicConfig.subreddits)
+    // Seed initial topics if the table is empty
+    const topicCount = (
+      this.db.prepare("SELECT COUNT(*) as count FROM topics").get() as {
+        count: number;
+      }
+    ).count;
+    if (topicCount === 0 && Array.isArray(config.topics)) {
+      console.log("Seeding topics...");
+      const insertStmt = this.db.prepare(
+        `INSERT INTO topics (name, keywords, sources, active) VALUES (?, ?, ?, ?)`
+      );
+      for (const topic of config.topics) {
+        insertStmt.run(
+          topic.name,
+          JSON.stringify(topic.keywords),
+          JSON.stringify(topic.sources),
+          topic.active
         );
+      }
     }
   }
 
   // News Items
   insertNewsItem(item: NewsItem): number {
     const stmt = this.db.prepare(`
-      INSERT INTO news_items (title, url, subreddit, score, matched_keywords, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO news_items (title, url, source, source_type, score, matched_keywords, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
     const result = stmt.run(
       item.title,
       item.url,
-      item.subreddit,
+      item.source,
+      item.source_type,
       item.score,
       item.matched_keywords,
       item.created_at

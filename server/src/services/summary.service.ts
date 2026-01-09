@@ -1,9 +1,7 @@
-import { redditService } from "./reddit.service";
-import { mockRedditService } from "./mock-reddit.service";
 import { llmService } from "./llm/llm.factory";
 import { db } from "../database";
-import { config } from "../config";
-import { Summary, SummaryWithSources } from "../models/types";
+import { NewsItem, SummaryWithSources, Topic } from "../models/types";
+import { newsProviderFactory } from "./provider.factory";
 
 export class SummaryService {
   async generateSummaryForTopic(
@@ -13,17 +11,39 @@ export class SummaryService {
       `\n=== Starting summary generation for topic: ${topicName} ===`
     );
 
-    // Use mock or real Reddit service based on configuration
-    const service = config.useMockData ? mockRedditService : redditService;
-    console.log(`Using ${config.useMockData ? "MOCK" : "REAL"} Reddit service`);
+    const topic = db.getTopicByName(topicName);
+    if (!topic) {
+      throw new Error(`Topic ${topicName} not found`);
+    }
+
+    const providers = newsProviderFactory.getActiveProviders();
+    console.log(
+      `Using providers: ${providers.map((p) => p.providerName).join(", ")}`
+    );
     console.log(
       `Using ${llmService.getProviderName()} LLM (${llmService.getModelName()})`
     );
 
-    // Fetch news items from Reddit
-    const newsItems = await service.fetchNewsByTopic(topicName);
+    // Fetch news items from all active providers
+    let allNewsItems: NewsItem[] = [];
+    for (const provider of providers) {
+      try {
+        const items = await provider.fetchNewsForTopic(topic);
+        allNewsItems.push(...items);
+      } catch (error) {
+        console.error(
+          `Error fetching news from ${provider.providerName}:`,
+          error
+        );
+      }
+    }
 
-    if (newsItems.length === 0) {
+    // Deduplicate items by URL
+    const uniqueNewsItems = Array.from(
+      new Map(allNewsItems.map((item) => [item.url, item])).values()
+    );
+
+    if (uniqueNewsItems.length === 0) {
       console.log("No news items found, creating empty summary");
       const summaryText = `No new posts found for ${topicName} in the last 24 hours.`;
       const summaryId = db.insertSummary({
@@ -43,7 +63,7 @@ export class SummaryService {
 
     // Generate summary using LLM service
     const summaryMarkdown = await llmService.generateSummary(
-      newsItems,
+      uniqueNewsItems,
       topicName
     );
 
@@ -55,7 +75,7 @@ export class SummaryService {
     });
 
     // Link news items to summary
-    for (const item of newsItems) {
+    for (const item of uniqueNewsItems) {
       if (item.id) {
         db.insertSummarySource(summaryId, item.id);
       }
@@ -69,7 +89,7 @@ export class SummaryService {
       topic: topicName,
       summary_markdown: summaryMarkdown,
       created_at: new Date().toISOString(),
-      sources: newsItems,
+      sources: uniqueNewsItems,
     };
   }
 

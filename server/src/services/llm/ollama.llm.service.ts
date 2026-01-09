@@ -120,13 +120,13 @@ export class OllamaLLMService extends BaseLLMService {
     const postsText = newsItems
       .map(
         (item, index) =>
-          `${index + 1}. "${item.title}" (r/${item.subreddit}, ${
-            item.score
-          }↑)\n   ${item.url}`
+          `${index + 1}. "${item.title}" (${item.source}, ${item.score}↑)\n   ${
+            item.url
+          }`
       )
       .join("\n\n");
 
-    return `Task: Analyze these ${newsItems.length} Reddit posts about ${topic} from the last 24 hours and create a comprehensive news summary.
+    return `Task: Analyze these ${newsItems.length} stories/posts about ${topic} from the last 24 hours and create a comprehensive news summary.
 
 Posts:
 ${postsText}
@@ -146,7 +146,7 @@ Format as: **Title/Topic**: Brief description
 Focus on the most impactful stories that stand out
 
 ## Sources
-List each source as: [Post Title](URL) - r/subreddit (score↑)
+List each source as: [Post Title](URL) - Source (score↑)
 
 Requirements:
 - Use proper markdown formatting

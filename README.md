@@ -4,8 +4,9 @@ AI News Aggregator that fetches daily news from Reddit, summarizes them using LL
 
 ## Features
 
-- 📰 Fetches AI-related news from Reddit (r/MachineLearning, r/artificial, r/LocalLLaMA, r/OpenAI, r/singularity)
+- 📰 **Multi-source news aggregation**: Fetches AI-related news from Reddit and Hacker News.
 - 🤖 **Multi-provider LLM support**: Ollama (self-hosted, free) or OpenAI (cloud, paid)
+- ⚙️ **Flexible topic configuration** via a centralized JSON file.
 - 🎯 **Provider-specific prompt optimization** for better results
 - 💰 **Cost monitoring and logging** for all LLM requests
 - 📊 SQLite database for storage
@@ -45,6 +46,12 @@ See [LLM_PROVIDER_GUIDE.md](./LLM_PROVIDER_GUIDE.md) for detailed configuration 
 2. Copy `.env.example` to `.env` and fill in your credentials:
 
    ```bash
+   # Active news providers to fetch from
+   ACTIVE_NEWS_PROVIDERS=reddit,hackernews
+
+   # Mock specific providers by listing them (e.g., MOCK_PROVIDERS=reddit,hackernews)
+   MOCK_PROVIDERS=reddit
+
    # Choose your LLM provider
    LLM_PROVIDER=ollama  # or 'openai'
 
@@ -65,6 +72,33 @@ See [LLM_PROVIDER_GUIDE.md](./LLM_PROVIDER_GUIDE.md) for detailed configuration 
    ```bash
    npm run dev
    ```
+
+## Topic Configuration
+
+News fetching is driven by a structured configuration file located at `server/src/config/topics.config.json`. This file allows you to define multiple topics, each with its own set of keywords and provider-specific sources.
+
+Here's an example for a single "AI" topic:
+
+```json
+[
+  {
+    "name": "AI",
+    "keywords": ["OpenAI", "Claude", "Nvidia", "GPT", "LLM", "AI"],
+    "sources": {
+      "reddit": ["MachineLearning", "artificial", "LocalLLaMA"],
+      "hackernews": ["story"]
+    },
+    "active": 1
+  }
+]
+```
+
+- `name`: The display name of the topic.
+- `keywords`: A list of keywords used to find relevant articles within the sources.
+- `sources`: An object where keys are the provider names (e.g., `reddit`, `hackernews`) and values are arrays of source targets (e.g., subreddit names for Reddit).
+- `active`: Set to `1` to enable fetching for this topic.
+
+This replaces the previous `.env` variables for keywords and subreddits.
 
 ## API Endpoints
 

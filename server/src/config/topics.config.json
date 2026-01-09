@@ -1,0 +1,42 @@
+[
+  {
+    "name": "AI",
+    "keywords": [
+      "OpenAI",
+      "ChatGPT",
+      "AI",
+      "GPT",
+      "Claude",
+      "Anthropic",
+      "Nvidia",
+      "Grok",
+      "Artificial Intelligence",
+      "GPT",
+      "LLM",
+      "Machine Learning",
+      "Deep Learning",
+      "Neural Network",
+      "Transformers",
+      "Reinforcement Learning",
+      "Natural Language Processing",
+      "Computer Vision",
+      "Stable Diffusion",
+      "DALL-E",
+      "Midjourney",
+      "Bard",
+      "Gemini",
+      "LLaMA"
+    ],
+    "sources": {
+      "reddit": [
+        "MachineLearning",
+        "artificial",
+        "LocalLLaMA",
+        "OpenAI",
+        "singularity"
+      ],
+      "hackernews": ["top", "new", "best"]
+    },
+    "active": 1
+  }
+]

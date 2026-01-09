@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import rawModelPricing from "./model-pricing.json";
+import topicsConfig from "./topics.config.json";
 import { assertModelPricingMap } from "../utils/schema-guards";
 
 dotenv.config({ path: "../.env" });
@@ -10,6 +11,7 @@ export const config = {
   port: parseInt(process.env.PORT || "3000", 10),
   nodeEnv: process.env.NODE_ENV || "development",
   useMockData: process.env.USE_MOCK_DATA === "true",
+  activeProviders: process.env.ACTIVE_NEWS_PROVIDERS?.split(",") || ["reddit"],
 
   reddit: {
     clientId: process.env.REDDIT_CLIENT_ID || "",
@@ -49,32 +51,7 @@ export const config = {
     path: process.env.DATABASE_PATH || "./news.sqlite",
   },
 
-  topics: {
-    ai: {
-      name: "AI",
-      keywords: process.env.AI_KEYWORDS?.split(",").map((k) => k.trim()) || [
-        "OpenAI",
-        "Claude",
-        "Nvidia",
-        "GPT",
-        "LLM",
-        "AI",
-        "Artificial Intelligence",
-        "Machine Learning",
-        "Deep Learning",
-        "Anthropic",
-      ],
-      subreddits: process.env.AI_SUBREDDITS?.split(",").map((s) =>
-        s.trim()
-      ) || [
-        "MachineLearning",
-        "artificial",
-        "LocalLLaMA",
-        "OpenAI",
-        "singularity",
-      ],
-    },
-  },
+  topics: topicsConfig,
 
   scheduler: {
     cronTime: "0 8 * * *", // 8 AM daily

@@ -17,9 +17,13 @@
     "test:client": "echo \"Error: no test specified for client\" && exit 1"
   },
   "devDependencies": {
+    "@types/axios": "^0.9.36",
     "concurrently": "^8.2.2"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.13.2"
   }
 }

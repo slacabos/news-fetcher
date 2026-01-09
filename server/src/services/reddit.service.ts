@@ -1,9 +1,11 @@
 import Snoowrap from "snoowrap";
 import { config } from "../config";
-import { NewsItem } from "../models/types";
+import { NewsItem, Topic } from "../models/types";
 import { db } from "../database";
+import { NewsProvider } from "./providers/base.provider";
 
-export class RedditService {
+export class RedditService implements NewsProvider {
+  providerName = "reddit";
   private reddit: Snoowrap | null = null;
 
   private getReddit(): Snoowrap {
@@ -22,17 +24,24 @@ export class RedditService {
     return this.reddit;
   }
 
-  async fetchNewsByTopic(topicName: string): Promise<NewsItem[]> {
+  async fetchNewsForTopic(topic: Topic): Promise<NewsItem[]> {
     const reddit = this.getReddit();
-    const topic = db.getTopicByName(topicName);
-    if (!topic) {
-      throw new Error(`Topic ${topicName} not found`);
+
+    const sources = JSON.parse(topic.sources);
+    const subreddits = sources.reddit || [];
+
+    if (subreddits.length === 0) {
+      console.log(
+        `No subreddits configured for topic ${topic.name} and provider ${this.providerName}`
+      );
+      return [];
     }
 
     const keywords: string[] = JSON.parse(topic.keywords);
-    const subreddits: string[] = JSON.parse(topic.subreddits);
 
-    console.log(`Fetching posts for topic: ${topicName}`);
+    console.log(
+      `Fetching posts for topic: ${topic.name} from provider: ${this.providerName}`
+    );
     console.log(`Subreddits: ${subreddits.join(", ")}`);
     console.log(`Keywords: ${keywords.join(", ")}`);
 
@@ -61,7 +70,8 @@ export class RedditService {
             const newsItem: NewsItem = {
               title: post.title,
               url: `https://reddit.com${post.permalink}`,
-              subreddit: post.subreddit.display_name,
+              source: post.subreddit.display_name,
+              source_type: this.providerName,
               score: post.score,
               matched_keywords: matchedKeywords.join(", "),
               created_at: post.created_utc,
@@ -101,7 +111,8 @@ export class RedditService {
           const newsItem: NewsItem = {
             title: post.title,
             url: `https://reddit.com${post.permalink}`,
-            subreddit: post.subreddit.display_name,
+            source: post.subreddit.display_name,
+            source_type: this.providerName,
             score: post.score,
             matched_keywords: matchedKeywords.join(", "),
             created_at: post.created_utc,
@@ -117,7 +128,9 @@ export class RedditService {
     }
 
     const newsItems = Array.from(posts.values());
-    console.log(`Found ${newsItems.length} unique posts`);
+    console.log(
+      `Found ${newsItems.length} unique posts from ${this.providerName}`
+    );
 
     // Save to database
     const savedItems: NewsItem[] = [];
