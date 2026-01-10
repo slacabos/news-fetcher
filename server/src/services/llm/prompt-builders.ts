@@ -23,18 +23,9 @@ function buildSystemPrompt(topic: string): string {
 - Create comprehensive, well-structured markdown summaries
 - Maintain objectivity and technical accuracy
 - Prioritize high-quality, high-engagement content
-- Present information in a clear, newsworthy format`;
-}
+- Present information in a clear, newsworthy format
 
-function buildUserPrompt(topic: string, newsItems: NewsItem[]): string {
-  return `Analyze these ${
-    newsItems.length
-  } stories/posts about ${topic} from the last 24 hours and create a comprehensive news summary.
-
-**News Posts:**
-${formatNewsItems(newsItems)}
-
-**Create a markdown summary with these exact sections:**
+When creating summaries, always use this exact structure:
 
 ## Overview
 Provide 2-3 sentences summarizing the main themes, trends, and overall sentiment in ${topic} today.
@@ -53,11 +44,20 @@ Present 3-5 standout items in this format:
 List all source posts in this format:
 - [Post Title](URL) - Source (score)
 
-**Guidelines:**
+Guidelines:
 - Use proper markdown formatting throughout
 - Be concise but informative
 - Focus on facts, not speculation
 - Maintain a professional, objective tone`;
+}
+
+function buildUserPrompt(topic: string, newsItems: NewsItem[]): string {
+  return `Analyze these ${
+    newsItems.length
+  } stories/posts about ${topic} from the last 24 hours and create a comprehensive news summary.
+
+**News Posts:**
+${formatNewsItems(newsItems)}`;
 }
 
 function formatNewsItems(newsItems: NewsItem[]): string {

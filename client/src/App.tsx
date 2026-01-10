@@ -5,6 +5,7 @@ import {
   NavLink,
   Link,
 } from "react-router-dom";
+import { useState } from "react";
 import { LatestSummary } from "./components/LatestSummary";
 import { SummaryHistory } from "./components/SummaryHistory";
 import { SummaryDetail } from "./components/SummaryDetail";
@@ -12,6 +13,11 @@ import { ManualFetch } from "./components/ManualFetch";
 import "./App.css";
 
 function App() {
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const handleFetchComplete = () => {
+    setRefreshTrigger((prev) => prev + 1);
+  };
   return (
     <Router>
       <div className="app-shell">
@@ -51,8 +57,8 @@ function App() {
               path="/"
               element={
                 <div className="home-grid">
-                  <LatestSummary />
-                  <ManualFetch />
+                  <LatestSummary refreshTrigger={refreshTrigger} />
+                  <ManualFetch onFetchComplete={handleFetchComplete} />
                 </div>
               }
             />

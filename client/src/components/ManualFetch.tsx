@@ -2,7 +2,11 @@ import { useState } from "react";
 import { fetchApi } from "../services/api";
 import "./ManualFetch.css";
 
-export const ManualFetch = () => {
+interface ManualFetchProps {
+  onFetchComplete?: () => void;
+}
+
+export const ManualFetch = ({ onFetchComplete }: ManualFetchProps) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -21,9 +25,10 @@ export const ManualFetch = () => {
         } sources.`
       );
 
-      // Reload the page after a short delay to show the new summary
+      // Reload the summary without a full page refresh
       setTimeout(() => {
-        window.location.reload();
+        onFetchComplete?.();
+        setMessage("");
       }, 2000);
     } catch (err) {
       setError(

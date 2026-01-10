@@ -5,14 +5,14 @@ import ReactMarkdown from "react-markdown";
 import "./summary-shared.css";
 import "./LatestSummary.css";
 
-export const LatestSummary = () => {
+interface LatestSummaryProps {
+  refreshTrigger?: number;
+}
+
+export const LatestSummary = ({ refreshTrigger }: LatestSummaryProps) => {
   const [summary, setSummary] = useState<SummaryWithSources | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadLatestSummary();
-  }, []);
 
   const loadLatestSummary = async () => {
     try {
@@ -27,6 +27,10 @@ export const LatestSummary = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadLatestSummary();
+  }, [refreshTrigger]);
 
   if (loading) {
     return (
