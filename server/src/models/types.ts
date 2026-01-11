@@ -33,3 +33,18 @@ export interface Topic {
 export interface SummaryWithSources extends Summary {
   sources: NewsItem[];
 }
+
+export interface SlackPost {
+  id?: number;
+  summary_id: number;
+  slack_channel_id: string;
+  slack_message_ts: string;
+  posted_at: string;
+}
+
+export interface SlackPostResult {
+  success: boolean;
+  error?: string;
+  timestamp?: string;
+  alreadyPosted?: boolean;
+}

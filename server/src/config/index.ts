@@ -56,4 +56,11 @@ export const config = {
   scheduler: {
     cronTime: "0 8 * * *", // 8 AM daily
   },
+
+  slack: {
+    enabled: process.env.SLACK_ENABLED === "true",
+    webhookUrl: process.env.SLACK_WEBHOOK_URL || "",
+    channelId: process.env.SLACK_CHANNEL_ID || "general",
+    autoPost: process.env.SLACK_AUTO_POST === "true",
+  },
 };

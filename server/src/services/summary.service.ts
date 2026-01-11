@@ -2,6 +2,8 @@ import { llmService } from "./llm/llm.factory";
 import { db } from "../database";
 import { NewsItem, SummaryWithSources, Topic } from "../models/types";
 import { newsProviderFactory } from "./provider.factory";
+import { slackService } from "./slack.service";
+import { config } from "../config";
 
 export class SummaryService {
   async generateSummaryForTopic(
@@ -83,6 +85,32 @@ export class SummaryService {
 
     console.log(`Summary created with ID: ${summaryId}`);
     console.log(`=== Summary generation complete ===\n`);
+
+    // Post to Slack if enabled and auto-post is on (only for non-empty summaries)
+    if (
+      config.slack.enabled &&
+      config.slack.autoPost &&
+      uniqueNewsItems.length > 0
+    ) {
+      try {
+        const slackResult = await slackService.postSummary({
+          id: summaryId,
+          topic: topicName,
+          summary_markdown: summaryMarkdown,
+          created_at: new Date().toISOString(),
+          sources: uniqueNewsItems,
+        });
+
+        if (slackResult.success) {
+          console.log("✅ Summary posted to Slack successfully");
+        } else {
+          console.log(`⚠️ Failed to post to Slack: ${slackResult.error}`);
+        }
+      } catch (error) {
+        console.error("❌ Error posting to Slack:", error);
+        // Don't throw - summary generation succeeded
+      }
+    }
 
     return {
       id: summaryId,

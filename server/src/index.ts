@@ -6,6 +6,7 @@ import summariesRouter from "./routes/summaries";
 import topicsRouter from "./routes/topics";
 import fetchRouter from "./routes/fetch";
 import llmRouter from "./routes/llm";
+import slackRouter from "./routes/slack";
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use("/api/summaries", summariesRouter);
 app.use("/api/topics", topicsRouter);
 app.use("/api/fetch", fetchRouter);
 app.use("/api/llm", llmRouter);
+app.use("/api/slack", slackRouter);
 
 // Health check
 app.get("/api/health", (req, res) => {
@@ -52,6 +54,8 @@ app.get("/", (req, res) => {
       llmStats: "/api/llm/stats",
       llmLogs: "/api/llm/logs",
       llmProvider: "/api/llm/provider",
+      slackSend: "/api/slack/send/:id",
+      slackTest: "/api/slack/test",
     },
   });
 });

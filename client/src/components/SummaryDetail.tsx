@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import type { SummaryWithSources } from "../types";
 import { summaryApi } from "../services/api";
 import ReactMarkdown from "react-markdown";
+import slackIcon from "../assets/slack_icon.svg";
+import { useSlackPost } from "../hooks/useSlackPost";
 import "./summary-shared.css";
 import "./SummaryDetail.css";
 
@@ -12,6 +14,8 @@ export const SummaryDetail = () => {
   const [summary, setSummary] = useState<SummaryWithSources | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { slackPosting, slackMessage, slackError, postToSlack } =
+    useSlackPost();
 
   useEffect(() => {
     if (id) {
@@ -30,6 +34,12 @@ export const SummaryDetail = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSlackPost = () => {
+    if (summary?.id) {
+      postToSlack(summary.id);
     }
   };
 
@@ -81,6 +91,17 @@ export const SummaryDetail = () => {
         </button>
       </div>
 
+      {slackMessage && (
+        <div className="status-message status-message--success" role="status">
+          {slackMessage}
+        </div>
+      )}
+      {slackError && (
+        <div className="status-message status-message--error" role="alert">
+          {slackError}
+        </div>
+      )}
+
       <header className="summary-detail__header">
         <p className="eyebrow">Deep dive</p>
         <h2>{summary.topic} news summary</h2>
@@ -94,6 +115,30 @@ export const SummaryDetail = () => {
         <div className="markdown-reset">
           <ReactMarkdown>{summary.summary_markdown}</ReactMarkdown>
         </div>
+        {summary.sources && summary.sources.length > 0 && (
+          <div
+            style={{
+              marginTop: "2rem",
+              display: "flex",
+              justifyContent: "flex-start",
+            }}
+          >
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={handleSlackPost}
+              disabled={slackPosting}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+            >
+              <img
+                src={slackIcon}
+                alt=""
+                style={{ width: "1rem", height: "1rem" }}
+              />
+              {slackPosting ? "Posting..." : "Share to Slack"}
+            </button>
+          </div>
+        )}
       </div>
 
       {summary.sources && summary.sources.length > 0 && (

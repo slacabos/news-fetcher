@@ -1,6 +1,12 @@
 import Database from "better-sqlite3";
 import { config } from "../config";
-import { NewsItem, Summary, SummarySource, Topic } from "../models/types";
+import {
+  NewsItem,
+  Summary,
+  SummarySource,
+  Topic,
+  SlackPost,
+} from "../models/types";
 
 export class DatabaseService {
   private db: Database.Database;
@@ -47,9 +53,20 @@ export class DatabaseService {
         active INTEGER DEFAULT 1
       );
 
+      CREATE TABLE IF NOT EXISTS slack_posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        summary_id INTEGER NOT NULL,
+        slack_channel_id TEXT NOT NULL,
+        slack_message_ts TEXT NOT NULL,
+        posted_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(summary_id, slack_channel_id),
+        FOREIGN KEY (summary_id) REFERENCES summaries(id)
+      );
+
       CREATE INDEX IF NOT EXISTS idx_news_created_at ON news_items(created_at);
       CREATE INDEX IF NOT EXISTS idx_summaries_created_at ON summaries(created_at);
       CREATE INDEX IF NOT EXISTS idx_summaries_topic ON summaries(topic);
+      CREATE INDEX IF NOT EXISTS idx_slack_posts_summary ON slack_posts(summary_id);
     `);
 
     // Seed initial topics if the table is empty
@@ -183,6 +200,40 @@ export class DatabaseService {
     return this.db.prepare("SELECT * FROM topics WHERE name = ?").get(name) as
       | Topic
       | undefined;
+  }
+
+  // Slack Posts
+  checkIfSummaryPostedToSlack(summaryId: number, channelId: string): boolean {
+    const result = this.db
+      .prepare(
+        "SELECT id FROM slack_posts WHERE summary_id = ? AND slack_channel_id = ?"
+      )
+      .get(summaryId, channelId);
+    return result !== undefined;
+  }
+
+  insertSlackPost(
+    summaryId: number,
+    channelId: string,
+    messageTs: string
+  ): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO slack_posts (summary_id, slack_channel_id, slack_message_ts)
+      VALUES (?, ?, ?)
+    `);
+    const result = stmt.run(summaryId, channelId, messageTs);
+    return result.lastInsertRowid as number;
+  }
+
+  getSlackPostBySummaryId(
+    summaryId: number,
+    channelId: string
+  ): SlackPost | undefined {
+    return this.db
+      .prepare(
+        "SELECT * FROM slack_posts WHERE summary_id = ? AND slack_channel_id = ? ORDER BY posted_at DESC LIMIT 1"
+      )
+      .get(summaryId, channelId) as SlackPost | undefined;
   }
 
   close() {

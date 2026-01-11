@@ -45,3 +45,25 @@ export const fetchApi = {
     return response.data;
   },
 };
+
+export const slackApi = {
+  sendSummary: async (
+    summaryId: number
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    timestamp?: string;
+    alreadyPosted?: boolean;
+  }> => {
+    const response = await api.post(`/slack/send/${summaryId}`);
+    return response.data;
+  },
+
+  testWebhook: async (): Promise<{
+    success: boolean;
+    error?: string;
+  }> => {
+    const response = await api.post("/slack/test");
+    return response.data;
+  },
+};
