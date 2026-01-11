@@ -13,7 +13,7 @@ const app = express();
 // Middleware
 app.use(
   cors({
-    origin: "http://localhost:5173", // Vite dev server
+    origin: ["http://localhost:5173", "http://localhost:8080"], // Vite dev server and Docker
     credentials: true,
   })
 );
@@ -80,7 +80,9 @@ const PORT = config.port;
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);
   console.log(`📡 API endpoints available at http://localhost:${PORT}/api`);
-  console.log(`🌐 CORS enabled for http://localhost:5173\n`);
+  console.log(
+    `🌐 CORS enabled for http://localhost:5173 and http://localhost:8080\n`
+  );
 
   // Start scheduler
   schedulerService.start();
