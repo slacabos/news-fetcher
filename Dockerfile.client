@@ -1,0 +1,30 @@
+# Build stage
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy root package files
+COPY package*.json ./
+COPY client/package*.json ./client/
+
+# Install dependencies
+RUN npm install --workspace=client
+
+# Copy client source code
+COPY client ./client
+
+# Build the React app
+RUN npm run build --workspace=client
+
+# Production stage - use nginx to serve static files
+FROM nginx:alpine
+
+# Copy built files
+COPY --from=builder /app/client/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

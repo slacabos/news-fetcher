@@ -1,0 +1,47 @@
+# Build stage
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+# Copy root package files
+COPY package*.json ./
+COPY server/package*.json ./server/
+
+# Install dependencies
+RUN npm install --workspace=server
+
+# Copy server source code
+COPY server ./server
+
+# Build TypeScript
+RUN npm run build --workspace=server
+
+# Production stage
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy root package files
+COPY package*.json ./
+COPY server/package*.json ./server/
+
+# Install only production dependencies
+RUN npm install --workspace=server --omit=dev
+
+# Copy built files from builder
+COPY --from=builder /app/server/dist ./server/dist
+COPY server/src/config/*.json ./server/dist/config/
+
+# Create directory for database and logs
+RUN mkdir -p /app/data /app/logs
+
+# Expose port
+EXPOSE 3000
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV DATABASE_PATH=/app/data/news.sqlite
+ENV LLM_LOG_PATH=/app/logs/llm-requests.log
+
+# Start the server
+CMD ["node", "server/dist/index.js"]

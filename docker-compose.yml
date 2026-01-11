@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: news-fetcher-server
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_PATH=/app/data/news.sqlite
+      - LLM_LOG_PATH=/app/logs/llm-requests.log
+      
+      # LLM Provider Configuration
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      
+      # Ollama Configuration (default)
+      - OLLAMA_API_URL=${OLLAMA_API_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-gpt-oss:20b}
+      
+      # OpenAI Configuration (alternative)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo-preview}
+      
+      # Reddit API Configuration
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET}
+      - REDDIT_USER_AGENT=${REDDIT_USER_AGENT:-news-fetcher-bot/1.0.0}
+      
+      # Active news providers
+      - ACTIVE_NEWS_PROVIDERS=${ACTIVE_NEWS_PROVIDERS:-reddit,hackernews}
+      
+      # Optional: Mock data for testing
+      - USE_MOCK_DATA=${USE_MOCK_DATA:-false}
+      
+      # Optional: LLM Logging
+      - LLM_LOGGING_ENABLED=${LLM_LOGGING_ENABLED:-true}
+    volumes:
+      - news-data:/app/data
+      - llm-logs:/app/logs
+    restart: unless-stopped
+    extra_hosts:
+      # Allows Docker container to access Ollama running on host machine
+      - "host.docker.internal:host-gateway"
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: news-fetcher-client
+    ports:
+      - "8080:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  news-data:
+    driver: local
+  llm-logs:
+    driver: local
