@@ -1,3 +1,4 @@
+import axios from "axios";
 import { useState } from "react";
 import { slackApi } from "../services/api";
 
@@ -23,9 +24,29 @@ export const useSlackPost = () => {
         setSlackError(result.error || "Failed to post to Slack");
       }
     } catch (err) {
-      setSlackError(
-        "Failed to post to Slack. Make sure Slack integration is enabled."
-      );
+      if (axios.isAxiosError(err)) {
+        const responseData = err.response?.data as
+          | {
+              success?: boolean;
+              error?: string;
+              alreadyPosted?: boolean;
+            }
+          | undefined;
+
+        if (responseData?.alreadyPosted) {
+          setSlackError("This summary has already been posted to Slack");
+        } else if (responseData?.error) {
+          setSlackError(responseData.error);
+        } else {
+          setSlackError(
+            "Failed to post to Slack. Make sure Slack integration is enabled."
+          );
+        }
+      } else {
+        setSlackError(
+          "Failed to post to Slack. Make sure Slack integration is enabled."
+        );
+      }
       console.error(err);
     } finally {
       setSlackPosting(false);
