@@ -38,13 +38,14 @@ export class OllamaService {
     const prompt = this.buildPrompt(sortedItems, topic);
 
     try {
+      const payload: OllamaGenerateRequest = {
+        model: this.model,
+        prompt,
+        stream: false,
+      };
       const response = await axios.post<OllamaGenerateResponse>(
         `${this.apiUrl}/api/generate`,
-        {
-          model: this.model,
-          prompt,
-          stream: false,
-        } as OllamaGenerateRequest,
+        payload,
         {
           timeout: 120000, // 2 minutes timeout
         }
@@ -63,7 +64,7 @@ export class OllamaService {
     const postsText = newsItems
       .map(
         (item, index) =>
-          `${index + 1}. "${item.title}" (${item.subreddit}, ${
+          `${index + 1}. "${item.title}" (${item.source}, ${
             item.score
           } upvotes)\n   URL: ${item.url}`
       )

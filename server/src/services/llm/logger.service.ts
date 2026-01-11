@@ -84,17 +84,22 @@ export class LLMLogger {
   } {
     const logs = this.getAllLogs();
 
-    const stats = {
+    const stats: {
+      totalRequests: number;
+      successfulRequests: number;
+      failedRequests: number;
+      totalCost: number;
+      totalTokens: number;
+      averageLatency: number;
+      byProvider: Record<string, { count: number; cost: number; tokens: number }>;
+    } = {
       totalRequests: logs.length,
       successfulRequests: logs.filter((l) => l.success).length,
       failedRequests: logs.filter((l) => !l.success).length,
       totalCost: 0,
       totalTokens: 0,
       averageLatency: 0,
-      byProvider: {} as Record<
-        string,
-        { count: number; cost: number; tokens: number }
-      >,
+      byProvider: {},
     };
 
     if (logs.length === 0) {

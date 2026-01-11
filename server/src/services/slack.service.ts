@@ -16,17 +16,28 @@ interface SlackBlock {
   }>;
 }
 
-interface SlackWebhookPayload {
+interface SlackApiPayload {
+  channel: string;
   blocks: SlackBlock[];
 }
 
+interface SlackApiResponse {
+  ok: boolean;
+  error?: string;
+  ts?: string;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
 export class SlackService {
-  private webhookUrl: string;
+  private botToken: string;
   private channelId: string;
   private enabled: boolean;
+  private apiUrl = "https://slack.com/api/chat.postMessage";
 
   constructor() {
-    this.webhookUrl = config.slack.webhookUrl;
+    this.botToken = config.slack.botToken;
     this.channelId = config.slack.channelId;
     this.enabled = config.slack.enabled;
   }
@@ -41,11 +52,11 @@ export class SlackService {
         };
       }
 
-      // Validate webhook URL
-      if (!this.webhookUrl) {
+      // Validate bot token
+      if (!this.botToken) {
         return {
           success: false,
-          error: "Slack webhook URL is not configured",
+          error: "Slack bot token is not configured",
         };
       }
 
@@ -73,25 +84,32 @@ export class SlackService {
       }
 
       // Format summary for Slack
-      const payload = this.formatForSlack(summary);
+      const payload: SlackApiPayload = {
+        channel: this.channelId,
+        blocks: this.formatForSlack(summary).blocks,
+      };
 
       // Send to Slack
-      const response = await fetch(this.webhookUrl, {
+      const response = await fetch(this.apiUrl, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json; charset=utf-8",
+          Authorization: `Bearer ${this.botToken}`,
         },
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Slack API error: ${response.status} - ${errorText}`);
+      const responseData = this.parseSlackResponse(await response.json());
+
+      if (!response.ok || !responseData.ok) {
+        throw new Error(
+          `Slack API error: ${responseData.error || response.statusText}`
+        );
       }
 
       // Save to database
       if (summary.id) {
-        const messageTs = new Date().toISOString(); // Use ISO string as timestamp
+        const messageTs = responseData.ts || new Date().toISOString();
         db.insertSlackPost(summary.id, this.channelId, messageTs);
       }
 
@@ -117,36 +135,41 @@ export class SlackService {
         };
       }
 
-      if (!this.webhookUrl) {
+      if (!this.botToken) {
         return {
           success: false,
-          error: "Slack webhook URL is not configured",
+          error: "Slack bot token is not configured",
         };
       }
 
       const payload = {
+        channel: this.channelId,
         blocks: [
           {
             type: "section",
             text: {
               type: "mrkdwn",
-              text: "✅ Slack webhook test successful! Your news-fetcher integration is working.",
+              text: "✅ Slack bot test successful! Your news-fetcher integration is working.",
             },
           },
         ],
       };
 
-      const response = await fetch(this.webhookUrl, {
+      const response = await fetch(this.apiUrl, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json; charset=utf-8",
+          Authorization: `Bearer ${this.botToken}`,
         },
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Slack API error: ${response.status} - ${errorText}`);
+      const responseData = this.parseSlackResponse(await response.json());
+
+      if (!response.ok || !responseData.ok) {
+        throw new Error(
+          `Slack API error: ${responseData.error || response.statusText}`
+        );
       }
 
       return {
@@ -162,7 +185,9 @@ export class SlackService {
     }
   }
 
-  private formatForSlack(summary: SummaryWithSources): SlackWebhookPayload {
+  private formatForSlack(summary: SummaryWithSources): {
+    blocks: SlackBlock[];
+  } {
     const blocks: SlackBlock[] = [];
 
     // Header
@@ -305,6 +330,22 @@ export class SlackService {
 
     // Preserve bullet lists (same format in both)
     return converted;
+  }
+
+  private parseSlackResponse(payload: unknown): SlackApiResponse {
+    if (!isRecord(payload)) {
+      throw new Error("Slack API response payload is malformed");
+    }
+
+    const ok = payload.ok;
+    if (typeof ok !== "boolean") {
+      throw new Error("Slack API response is missing ok flag");
+    }
+
+    const error = typeof payload.error === "string" ? payload.error : undefined;
+    const ts = typeof payload.ts === "string" ? payload.ts : undefined;
+
+    return { ok, error, ts };
   }
 }
 

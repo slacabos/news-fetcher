@@ -56,13 +56,14 @@ export class OllamaLLMService extends BaseLLMService {
     const estimatedInputTokens = Math.ceil(prompt.length / 4);
 
     try {
+      const payload: OllamaGenerateRequest = {
+        model: this.model,
+        prompt,
+        stream: false,
+      };
       const response = await axios.post<OllamaGenerateResponse>(
         `${this.apiUrl}/api/generate`,
-        {
-          model: this.model,
-          prompt,
-          stream: false,
-        } as OllamaGenerateRequest,
+        payload,
         {
           timeout: 120000, // 2 minutes timeout
         }

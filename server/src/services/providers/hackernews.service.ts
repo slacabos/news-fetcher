@@ -32,7 +32,7 @@ export class HackerNewsService implements NewsProvider {
       `Fetching posts for topic: ${topic.name} from provider: ${this.providerName}`
     );
 
-    let allStoryIds: number[] = [];
+    const allStoryIds: number[] = [];
     if (hnSources.includes("top")) {
       const topIds = await this.fetchStoryIds("topstories");
       allStoryIds.push(...topIds.slice(0, 100));

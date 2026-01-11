@@ -3,7 +3,6 @@ import { config } from "../config";
 import {
   NewsItem,
   Summary,
-  SummarySource,
   Topic,
   SlackPost,
 } from "../models/types";
@@ -70,11 +69,10 @@ export class DatabaseService {
     `);
 
     // Seed initial topics if the table is empty
-    const topicCount = (
-      this.db.prepare("SELECT COUNT(*) as count FROM topics").get() as {
-        count: number;
-      }
-    ).count;
+    const topicRow = this.db
+      .prepare<[], { count: number }>("SELECT COUNT(*) as count FROM topics")
+      .get();
+    const topicCount = topicRow ? topicRow.count : 0;
     if (topicCount === 0 && Array.isArray(config.topics)) {
       console.log("Seeding topics...");
       const insertStmt = this.db.prepare(
@@ -89,6 +87,10 @@ export class DatabaseService {
         );
       }
     }
+  }
+
+  private normalizeRowId(rowId: number | bigint): number {
+    return typeof rowId === "bigint" ? Number(rowId) : rowId;
   }
 
   // News Items
@@ -106,21 +108,23 @@ export class DatabaseService {
       item.matched_keywords,
       item.created_at
     );
-    return result.lastInsertRowid as number;
+    return this.normalizeRowId(result.lastInsertRowid);
   }
 
   getNewsItemByUrl(url: string): NewsItem | undefined {
     return this.db
-      .prepare("SELECT * FROM news_items WHERE url = ?")
-      .get(url) as NewsItem | undefined;
+      .prepare<[string], NewsItem>("SELECT * FROM news_items WHERE url = ?")
+      .get(url);
   }
 
   getNewsItemsByIds(ids: number[]): NewsItem[] {
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => "?").join(",");
     return this.db
-      .prepare(`SELECT * FROM news_items WHERE id IN (${placeholders})`)
-      .all(...ids) as NewsItem[];
+      .prepare<number[], NewsItem>(
+        `SELECT * FROM news_items WHERE id IN (${placeholders})`
+      )
+      .all(...ids);
   }
 
   // Summaries
@@ -130,18 +134,20 @@ export class DatabaseService {
       VALUES (?, ?, datetime('now'))
     `);
     const result = stmt.run(summary.topic, summary.summary_markdown);
-    return result.lastInsertRowid as number;
+    return this.normalizeRowId(result.lastInsertRowid);
   }
 
   getLatestSummary(): Summary | undefined {
     return this.db
-      .prepare("SELECT * FROM summaries ORDER BY created_at DESC LIMIT 1")
-      .get() as Summary | undefined;
+      .prepare<[], Summary>(
+        "SELECT * FROM summaries ORDER BY created_at DESC LIMIT 1"
+      )
+      .get();
   }
 
   getSummaries(filters?: { date?: string; topic?: string }): Summary[] {
     let query = "SELECT * FROM summaries WHERE 1=1";
-    const params: any[] = [];
+    const params: string[] = [];
 
     if (filters?.date) {
       query += " AND DATE(created_at) = ?";
@@ -155,13 +161,13 @@ export class DatabaseService {
 
     query += " ORDER BY created_at DESC";
 
-    return this.db.prepare(query).all(...params) as Summary[];
+    return this.db.prepare<string[], Summary>(query).all(...params);
   }
 
   getSummaryById(id: number): Summary | undefined {
-    return this.db.prepare("SELECT * FROM summaries WHERE id = ?").get(id) as
-      | Summary
-      | undefined;
+    return this.db
+      .prepare<[number], Summary>("SELECT * FROM summaries WHERE id = ?")
+      .get(id);
   }
 
   // Summary Sources
@@ -178,7 +184,7 @@ export class DatabaseService {
 
   getSourcesBySummaryId(summaryId: number): NewsItem[] {
     return this.db
-      .prepare(
+      .prepare<[number], NewsItem>(
         `
       SELECT n.* FROM news_items n
       INNER JOIN summary_sources ss ON n.id = ss.news_item_id
@@ -186,20 +192,20 @@ export class DatabaseService {
       ORDER BY n.score DESC
     `
       )
-      .all(summaryId) as NewsItem[];
+      .all(summaryId);
   }
 
   // Topics
   getTopics(): Topic[] {
     return this.db
-      .prepare("SELECT * FROM topics WHERE active = 1")
-      .all() as Topic[];
+      .prepare<[], Topic>("SELECT * FROM topics WHERE active = 1")
+      .all();
   }
 
   getTopicByName(name: string): Topic | undefined {
-    return this.db.prepare("SELECT * FROM topics WHERE name = ?").get(name) as
-      | Topic
-      | undefined;
+    return this.db
+      .prepare<[string], Topic>("SELECT * FROM topics WHERE name = ?")
+      .get(name);
   }
 
   // Slack Posts
@@ -222,7 +228,7 @@ export class DatabaseService {
       VALUES (?, ?, ?)
     `);
     const result = stmt.run(summaryId, channelId, messageTs);
-    return result.lastInsertRowid as number;
+    return this.normalizeRowId(result.lastInsertRowid);
   }
 
   getSlackPostBySummaryId(
@@ -230,10 +236,10 @@ export class DatabaseService {
     channelId: string
   ): SlackPost | undefined {
     return this.db
-      .prepare(
+      .prepare<[number, string], SlackPost>(
         "SELECT * FROM slack_posts WHERE summary_id = ? AND slack_channel_id = ? ORDER BY posted_at DESC LIMIT 1"
       )
-      .get(summaryId, channelId) as SlackPost | undefined;
+      .get(summaryId, channelId);
   }
 
   close() {

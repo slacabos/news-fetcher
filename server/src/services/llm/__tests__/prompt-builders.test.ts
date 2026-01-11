@@ -8,7 +8,8 @@ const sampleNewsItems: NewsItem[] = [
     title: "OpenAI releases GPT-5",
     score: 4200,
     url: "https://reddit.com/r/MachineLearning/1",
-    subreddit: "MachineLearning",
+    source: "MachineLearning",
+    source_type: "reddit",
     created_at: 1700000000,
     matched_keywords: "OpenAI, GPT",
   },
@@ -17,7 +18,8 @@ const sampleNewsItems: NewsItem[] = [
     title: "Nvidia reports record earnings",
     score: 3600,
     url: "https://reddit.com/r/technology/2",
-    subreddit: "technology",
+    source: "technology",
+    source_type: "reddit",
     created_at: 1700003600,
     matched_keywords: "Nvidia",
   },
@@ -58,7 +60,7 @@ describe("buildSummaryMessages", () => {
       expect(userPrompt).toContain(ordinal);
       expect(userPrompt).toContain(item.title);
       expect(userPrompt).toContain(item.url);
-      expect(userPrompt).toContain(`r/${item.subreddit}`);
+      expect(userPrompt).toContain(item.source);
     });
   });
 
@@ -67,7 +69,7 @@ describe("buildSummaryMessages", () => {
       topic: "AI",
       newsItems: sampleNewsItems,
     });
-    const userPrompt = String(messages[1].content);
+    const systemPrompt = String(messages[0].content);
 
     [
       "## Overview",
@@ -75,7 +77,7 @@ describe("buildSummaryMessages", () => {
       "## Notable Highlights",
       "## Sources",
     ].forEach((section) => {
-      expect(userPrompt).toContain(section);
+      expect(systemPrompt).toContain(section);
     });
   });
 });

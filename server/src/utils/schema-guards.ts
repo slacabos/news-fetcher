@@ -15,46 +15,61 @@ export type TextResponse = {
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
 
-export function assertModelPricingMap(data: unknown): ModelPricingMap {
-  if (typeof data !== "object" || data === null || Array.isArray(data)) {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+function assertModelPricingMapShape(
+  data: unknown
+): asserts data is ModelPricingMap {
+  if (!isRecord(data) || Array.isArray(data)) {
     throw new Error("LLM pricing configuration must be an object map");
   }
 
   for (const [model, entry] of Object.entries(data)) {
-    if (
-      typeof entry !== "object" ||
-      entry === null ||
-      Array.isArray(entry) ||
-      !isFiniteNumber((entry as Partial<ModelPricingEntry>).input) ||
-      !isFiniteNumber((entry as Partial<ModelPricingEntry>).output)
-    ) {
+    if (!isRecord(entry) || Array.isArray(entry)) {
+      throw new Error(`Invalid pricing entry for model '${model}'`);
+    }
+
+    const input = entry.input;
+    const output = entry.output;
+
+    if (!isFiniteNumber(input) || !isFiniteNumber(output)) {
       throw new Error(`Invalid pricing entry for model '${model}'`);
     }
   }
-
-  return data as ModelPricingMap;
 }
 
-export function assertTextResponse(payload: unknown): TextResponse {
-  if (typeof payload !== "object" || payload === null) {
+function assertTextResponseShape(
+  payload: unknown
+): asserts payload is TextResponse {
+  if (!isRecord(payload)) {
     throw new Error("OpenAI response payload is missing or malformed");
   }
 
-  const response = payload as TextResponse;
-
-  if (response.output && !Array.isArray(response.output)) {
+  const output = payload.output;
+  if (output !== undefined && !Array.isArray(output)) {
     throw new Error("OpenAI response output must be an array when present");
   }
 
-  response.output?.forEach((segment, index) => {
-    if (segment.content && !Array.isArray(segment.content)) {
-      throw new Error(
-        `OpenAI response output[${index}].content must be an array when present`
-      );
-    }
-  });
+  if (Array.isArray(output)) {
+    output.forEach((segment, index) => {
+      if (!isRecord(segment)) {
+        throw new Error(
+          `OpenAI response output[${index}] must be an object when present`
+        );
+      }
 
-  if (response.usage && typeof response.usage !== "object") {
+      const content = segment.content;
+      if (content !== undefined && !Array.isArray(content)) {
+        throw new Error(
+          `OpenAI response output[${index}].content must be an array when present`
+        );
+      }
+    });
+  }
+
+  const usage = payload.usage;
+  if (usage !== undefined && !isRecord(usage)) {
     throw new Error("OpenAI response usage must be an object when present");
   }
 
@@ -65,11 +80,19 @@ export function assertTextResponse(payload: unknown): TextResponse {
   ];
 
   tokenFields.forEach((field) => {
-    const value = response.usage?.[field];
+    const value = usage?.[field];
     if (value !== undefined && !isFiniteNumber(value)) {
       throw new Error(`OpenAI response usage.${field} must be a number when present`);
     }
   });
+}
 
-  return response;
+export function assertModelPricingMap(data: unknown): ModelPricingMap {
+  assertModelPricingMapShape(data);
+  return data;
+}
+
+export function assertTextResponse(payload: unknown): TextResponse {
+  assertTextResponseShape(payload);
+  return payload;
 }

@@ -59,7 +59,7 @@ export const config = {
 
   slack: {
     enabled: process.env.SLACK_ENABLED === "true",
-    webhookUrl: process.env.SLACK_WEBHOOK_URL || "",
+    botToken: process.env.SLACK_BOT_TOKEN || "",
     channelId: process.env.SLACK_CHANNEL_ID || "general",
     autoPost: process.env.SLACK_AUTO_POST === "true",
   },

@@ -39,7 +39,7 @@ export class OpenAILLMService extends BaseLLMService {
 
     this.model = config.llm.openai.model;
     this.logger = logger;
-    this.modelPricing = config.llm.pricing as ModelPricingMap;
+    this.modelPricing = config.llm.pricing;
   }
 
   getProviderName(): string {
@@ -134,10 +134,7 @@ export class OpenAILLMService extends BaseLLMService {
   ): TextResponseInput {
     return messages.map((message) => ({
       type: "message",
-      role:
-        message.role === "assistant"
-          ? "developer"
-          : (message.role as "system" | "user" | "developer"),
+      role: this.normalizeRole(message.role),
       content: [
         {
           type: "input_text",
@@ -148,6 +145,18 @@ export class OpenAILLMService extends BaseLLMService {
         },
       ],
     }));
+  }
+
+  private normalizeRole(
+    role: OpenAI.Chat.ChatCompletionMessageParam["role"]
+  ): "system" | "user" | "developer" {
+    if (role === "assistant") {
+      return "developer";
+    }
+    if (role === "system" || role === "user" || role === "developer") {
+      return role;
+    }
+    return "user";
   }
 
   private extractTextFromResponse(response: TextResponse): string {

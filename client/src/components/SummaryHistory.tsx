@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type { SummaryWithSources } from "../types";
 import { summaryApi } from "../services/api";
 import { useNavigate } from "react-router-dom";
@@ -13,11 +13,7 @@ export const SummaryHistory = () => {
   const [topicFilter, setTopicFilter] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadSummaries();
-  }, [dateFilter, topicFilter]);
-
-  const loadSummaries = async () => {
+  const loadSummaries = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -33,7 +29,11 @@ export const SummaryHistory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFilter, topicFilter]);
+
+  useEffect(() => {
+    loadSummaries();
+  }, [loadSummaries]);
 
   const handleSummaryClick = (id: number | undefined) => {
     if (id) {

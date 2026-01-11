@@ -23,9 +23,9 @@ describe("assertModelPricingMap", () => {
   });
 
   it("throws when entries lack numeric input or output", () => {
-    const badPayload = {
+    const badPayload: unknown = {
       model: { input: "cheap", output: 1 },
-    } as unknown;
+    };
 
     expect(() => assertModelPricingMap(badPayload)).toThrow(/Invalid pricing entry/);
   });
@@ -55,29 +55,29 @@ describe("assertTextResponse", () => {
   });
 
   it("throws when output is not an array", () => {
-    const badResponse = { ...baseResponse, output: "oops" } as unknown;
+    const badResponse: unknown = { ...baseResponse, output: "oops" };
     expect(() => assertTextResponse(badResponse)).toThrow(/output must be an array/);
   });
 
   it("throws when a content entry is not an array", () => {
-    const badResponse = {
+    const badResponse: unknown = {
       ...baseResponse,
       output: [{ content: "oops" }],
-    } as unknown;
+    };
 
     expect(() => assertTextResponse(badResponse)).toThrow(/content must be an array/);
   });
 
   it("throws when usage is not an object", () => {
-    const badResponse = { ...baseResponse, usage: 10 } as unknown;
+    const badResponse: unknown = { ...baseResponse, usage: 10 };
     expect(() => assertTextResponse(badResponse)).toThrow(/usage must be an object/);
   });
 
   it("throws when token counts are non-numeric", () => {
-    const badResponse = {
+    const badResponse: unknown = {
       ...baseResponse,
       usage: { input_tokens: "a lot" },
-    } as unknown;
+    };
 
     expect(() => assertTextResponse(badResponse)).toThrow(/must be a number/);
   });

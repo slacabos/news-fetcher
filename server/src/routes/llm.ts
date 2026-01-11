@@ -24,7 +24,10 @@ router.get("/stats", async (req: Request, res: Response) => {
 // GET /api/llm/logs - Get all LLM request logs
 router.get("/logs", async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 100;
+    const limitParam = req.query.limit;
+    const parsedLimit =
+      typeof limitParam === "string" ? Number.parseInt(limitParam, 10) : NaN;
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : 100;
     const logs = logger.getAllLogs().slice(-limit); // Get last N logs
     res.json({ logs, count: logs.length });
   } catch (error) {

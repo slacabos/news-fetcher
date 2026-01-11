@@ -28,7 +28,7 @@ class NewsProviderFactory {
   getActiveProviders(): NewsProvider[] {
     return config.activeProviders
       .map((p) => this.get(p))
-      .filter((p) => p !== undefined) as NewsProvider[];
+      .filter((p): p is NewsProvider => p !== undefined);
   }
 }
 

@@ -1,9 +1,9 @@
-import cron from "node-cron";
+import cron, { ScheduledTask } from "node-cron";
 import { summaryService } from "./summary.service";
 import { config } from "../config";
 
 export class SchedulerService {
-  private task: cron.ScheduledTask | null = null;
+  private task: ScheduledTask | null = null;
 
   start() {
     console.log(

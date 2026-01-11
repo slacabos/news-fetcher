@@ -21,6 +21,11 @@ interface RedditResponse {
   };
 }
 
+interface RedditAccessTokenResponse {
+  access_token: string;
+  expires_in: number;
+}
+
 export class RedditService implements NewsProvider {
   providerName = "reddit";
   private accessToken: string | null = null;
@@ -44,7 +49,7 @@ export class RedditService implements NewsProvider {
     ).toString("base64");
 
     try {
-      const response = await axios.post(
+      const response = await axios.post<RedditAccessTokenResponse>(
         "https://www.reddit.com/api/v1/access_token",
         "grant_type=client_credentials",
         {
@@ -56,11 +61,12 @@ export class RedditService implements NewsProvider {
         }
       );
 
-      this.accessToken = response.data.access_token;
+      const accessToken = response.data.access_token;
+      this.accessToken = accessToken;
       // Set expiry to 5 minutes before actual expiry for safety
       this.tokenExpiry = Date.now() + (response.data.expires_in - 300) * 1000;
 
-      return this.accessToken;
+      return accessToken;
     } catch (error) {
       console.error("Error getting Reddit access token:", error);
       throw new Error("Failed to authenticate with Reddit API");

@@ -13,7 +13,7 @@ router.get("/", async (req: Request, res: Response) => {
       id: topic.id,
       name: topic.name,
       keywords: JSON.parse(topic.keywords),
-      subreddits: JSON.parse(topic.subreddits),
+      sources: JSON.parse(topic.sources),
       active: topic.active,
     }));
 

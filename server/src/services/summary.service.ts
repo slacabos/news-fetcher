@@ -1,6 +1,6 @@
 import { llmService } from "./llm/llm.factory";
 import { db } from "../database";
-import { NewsItem, SummaryWithSources, Topic } from "../models/types";
+import { NewsItem, SummaryWithSources } from "../models/types";
 import { newsProviderFactory } from "./provider.factory";
 import { slackService } from "./slack.service";
 import { config } from "../config";
@@ -27,7 +27,7 @@ export class SummaryService {
     );
 
     // Fetch news items from all active providers
-    let allNewsItems: NewsItem[] = [];
+    const allNewsItems: NewsItem[] = [];
     for (const provider of providers) {
       try {
         const items = await provider.fetchNewsForTopic(topic);
