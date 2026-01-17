@@ -3,10 +3,12 @@ import { config } from "../../config";
 import { NewsItem } from "../../models/types";
 import { BaseLLMService } from "./base.llm.service";
 import { LLMLogger } from "./logger.service";
+import { buildSummaryMessages } from "./prompt-builders";
 
 interface OllamaGenerateRequest {
   model: string;
   prompt: string;
+  system?: string;
   stream: boolean;
 }
 
@@ -49,16 +51,19 @@ export class OllamaLLMService extends BaseLLMService {
     // Sort by score to prioritize important posts
     const sortedItems = [...newsItems].sort((a, b) => b.score - a.score);
 
-    // Build the prompt
-    const prompt = this.buildPrompt(sortedItems, topic);
+    // Build system + user prompts aligned with OpenAI message structure
+    const { systemPrompt, userPrompt } = this.buildPrompts(sortedItems, topic);
 
     // Estimate input tokens (rough approximation: 4 chars ≈ 1 token)
-    const estimatedInputTokens = Math.ceil(prompt.length / 4);
+    const estimatedInputTokens = Math.ceil(
+      (systemPrompt.length + userPrompt.length) / 4
+    );
 
     try {
       const payload: OllamaGenerateRequest = {
         model: this.model,
-        prompt,
+        prompt: userPrompt,
+        ...(systemPrompt ? { system: systemPrompt } : {}),
         stream: false,
       };
       const response = await axios.post<OllamaGenerateResponse>(
@@ -114,46 +119,31 @@ export class OllamaLLMService extends BaseLLMService {
   }
 
   /**
-   * Build optimized prompt for Ollama completion-style models
-   * Direct, instructional format without explicit system role
+   * Build system and user prompts for /api/generate.
    */
-  private buildPrompt(newsItems: NewsItem[], topic: string): string {
-    const postsText = newsItems
-      .map(
-        (item, index) =>
-          `${index + 1}. "${item.title}" (${item.source}, ${item.score}↑)\n   ${
-            item.url
-          }`
-      )
-      .join("\n\n");
+  private buildPrompts(
+    newsItems: NewsItem[],
+    topic: string
+  ): { systemPrompt: string; userPrompt: string } {
+    const messages = buildSummaryMessages({ topic, newsItems });
+    return {
+      systemPrompt: this.normalizeMessageContent(
+        messages.find((message) => message.role === "system")?.content
+      ),
+      userPrompt: this.normalizeMessageContent(
+        messages.find((message) => message.role === "user")?.content
+      ),
+    };
+  }
 
-    return `Task: Analyze these ${newsItems.length} stories/posts about ${topic} from the last 24 hours and create a comprehensive news summary.
-
-Posts:
-${postsText}
-
-Instructions: Write a well-formatted markdown summary with exactly these sections:
-
-## Overview
-Write 2-3 sentences capturing the main themes and trends in ${topic}.
-
-## Key Developments
-• List each major development as a bullet point
-• Be concise but informative (1-2 sentences per point)
-• Focus on concrete announcements, breakthroughs, and significant updates
-
-## Notable Highlights
-Format as: **Title/Topic**: Brief description
-Focus on the most impactful stories that stand out
-
-## Sources
-List each source as: [Post Title](URL) - Source (score↑)
-
-Requirements:
-- Use proper markdown formatting
-- Be objective and newsworthy
-- Prioritize higher-scored posts
-- Keep technical accuracy`;
+  private normalizeMessageContent(content: unknown): string {
+    if (typeof content === "string") {
+      return content;
+    }
+    if (content === null || content === undefined) {
+      return "";
+    }
+    return JSON.stringify(content);
   }
 
   async checkHealth(): Promise<boolean> {
