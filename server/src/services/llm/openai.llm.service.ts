@@ -9,6 +9,9 @@ import {
 import { BaseLLMService } from "./base.llm.service";
 import { LLMLogger } from "./logger.service";
 import { buildSummaryMessages } from "./prompt-builders";
+import { createLogger } from "../../utils/logger";
+
+const log = createLogger("services/llm/openai");
 
 // OpenAI pricing per 1M tokens (January 2026 public sheet)
 // https://openai.com/pricing
@@ -57,8 +60,9 @@ export class OpenAILLMService extends BaseLLMService {
 
     const startTime = Date.now();
 
-    console.log(
-      `[OpenAI] Generating summary for ${newsItems.length} news items using ${this.model}...`
+    log.info(
+      { itemCount: newsItems.length, model: this.model },
+      "Generating OpenAI summary"
     );
 
     // Sort by score to prioritize important posts
@@ -103,10 +107,13 @@ export class OpenAILLMService extends BaseLLMService {
         success: true,
       });
 
-      console.log(
-        `[OpenAI] Summary generated successfully (${latencyMs}ms, ${totalTokens} tokens, ~$${estimatedCost.toFixed(
-          4
-        )})`
+      log.info(
+        {
+          latencyMs,
+          totalTokens,
+          estimatedCost: Number(estimatedCost.toFixed(4)),
+        },
+        "OpenAI summary generated successfully"
       );
 
       return summary;
@@ -124,7 +131,7 @@ export class OpenAILLMService extends BaseLLMService {
         errorMessage: error instanceof Error ? error.message : "Unknown error",
       });
 
-      console.error("[OpenAI] Error generating summary:", error);
+      log.error({ err: error }, "Error generating OpenAI summary");
       throw new Error("Failed to generate summary with OpenAI");
     }
   }
@@ -194,7 +201,7 @@ export class OpenAILLMService extends BaseLLMService {
       await this.client.models.list();
       return true;
     } catch (error) {
-      console.error("[OpenAI] Health check failed:", error);
+      log.error({ err: error }, "OpenAI health check failed");
       return false;
     }
   }

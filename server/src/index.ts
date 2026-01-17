@@ -7,8 +7,10 @@ import topicsRouter from "./routes/topics";
 import fetchRouter from "./routes/fetch";
 import llmRouter from "./routes/llm";
 import slackRouter from "./routes/slack";
+import { createLogger } from "./utils/logger";
 
 const app = express();
+const log = createLogger("app");
 
 // Middleware
 app.use(
@@ -21,7 +23,7 @@ app.use(express.json());
 
 // Request logging
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  log.debug({ method: req.method, path: req.path }, "Request received");
   next();
 });
 
@@ -69,7 +71,7 @@ app.use(
     _next: express.NextFunction
   ) => {
     void _next;
-    console.error("Unhandled error:", err);
+    log.error({ err }, "Unhandled error");
     res.status(500).json({ error: "Internal server error" });
   }
 );
@@ -78,10 +80,10 @@ app.use(
 const PORT = config.port;
 
 app.listen(PORT, () => {
-  console.log(`\n🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📡 API endpoints available at http://localhost:${PORT}/api`);
-  console.log(
-    `🌐 CORS enabled for http://localhost:5173 and http://localhost:8080\n`
+  log.info({ port: PORT }, "Server started");
+  log.debug(
+    { origins: ["http://localhost:5173", "http://localhost:8080"] },
+    "CORS enabled"
   );
 
   // Start scheduler
@@ -90,13 +92,13 @@ app.listen(PORT, () => {
 
 // Graceful shutdown
 process.on("SIGINT", () => {
-  console.log("\nShutting down gracefully...");
+  log.info("Shutting down gracefully...");
   schedulerService.stop();
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
-  console.log("\nShutting down gracefully...");
+  log.info("Shutting down gracefully...");
   schedulerService.stop();
   process.exit(0);
 });

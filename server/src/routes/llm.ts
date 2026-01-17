@@ -1,8 +1,10 @@
 import { Router, Request, Response } from "express";
 import { LLMLogger } from "../services/llm/logger.service";
 import { config } from "../config";
+import { createLogger } from "../utils/logger";
 
 const router = Router();
+const log = createLogger("routes/llm");
 
 // Initialize logger to read stats
 const logger = new LLMLogger(
@@ -16,7 +18,7 @@ router.get("/stats", async (req: Request, res: Response) => {
     const stats = logger.getStats();
     res.json(stats);
   } catch (error) {
-    console.error("Error fetching LLM stats:", error);
+    log.error({ err: error }, "Error fetching LLM stats");
     res.status(500).json({ error: "Failed to fetch LLM statistics" });
   }
 });
@@ -31,7 +33,7 @@ router.get("/logs", async (req: Request, res: Response) => {
     const logs = logger.getAllLogs().slice(-limit); // Get last N logs
     res.json({ logs, count: logs.length });
   } catch (error) {
-    console.error("Error fetching LLM logs:", error);
+    log.error({ err: error }, "Error fetching LLM logs");
     res.status(500).json({ error: "Failed to fetch LLM logs" });
   }
 });
@@ -48,7 +50,7 @@ router.get("/provider", async (req: Request, res: Response) => {
       loggingEnabled: config.llm.logging.enabled,
     });
   } catch (error) {
-    console.error("Error fetching LLM provider info:", error);
+    log.error({ err: error }, "Error fetching LLM provider info");
     res.status(500).json({ error: "Failed to fetch provider information" });
   }
 });

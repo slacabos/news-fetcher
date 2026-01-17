@@ -1,9 +1,12 @@
 import Database from "better-sqlite3";
 import { config } from "../src/config";
+import { createLogger } from "../src/utils/logger";
+
+const log = createLogger("scripts/sync-topics");
 
 const topics = config.topics;
 if (!Array.isArray(topics)) {
-  console.error("No topics configured to sync.");
+  log.error("No topics configured to sync.");
   process.exit(1);
 }
 
@@ -55,6 +58,7 @@ const { inserted, updated } = db.transaction(() => {
 
 db.close();
 
-console.log(
-  `Topics synced. Inserted ${inserted}, updated ${updated}. DB: ${config.database.path}`
+log.info(
+  { inserted, updated, dbPath: config.database.path },
+  "Topics synced"
 );

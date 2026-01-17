@@ -1,8 +1,10 @@
 import { Router, Request, Response } from "express";
 import { slackService } from "../services/slack.service";
 import { db } from "../database";
+import { createLogger } from "../utils/logger";
 
 const router = Router();
+const log = createLogger("routes/slack");
 
 // POST /api/slack/send/:id - Send a specific summary to Slack
 router.post("/send/:id", async (req: Request, res: Response) => {
@@ -41,7 +43,7 @@ router.post("/send/:id", async (req: Request, res: Response) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    console.error("Error in /api/slack/send:", error);
+    log.error({ err: error }, "Error in /api/slack/send");
     res.status(500).json({
       error: error instanceof Error ? error.message : "Internal server error",
     });
@@ -59,7 +61,7 @@ router.post("/test", async (req: Request, res: Response) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    console.error("Error in /api/slack/test:", error);
+    log.error({ err: error }, "Error in /api/slack/test");
     res.status(500).json({
       error: error instanceof Error ? error.message : "Internal server error",
     });

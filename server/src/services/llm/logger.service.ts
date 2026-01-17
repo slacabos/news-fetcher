@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { createLogger } from "../../utils/logger";
 
 export interface LLMLogEntry {
   timestamp: string;
@@ -18,6 +19,7 @@ export interface LLMLogEntry {
 export class LLMLogger {
   private logFilePath: string;
   private enabled: boolean;
+  private appLog = createLogger("services/llm/logger");
 
   constructor(logPath: string, enabled: boolean = true) {
     this.logFilePath = logPath;
@@ -48,7 +50,7 @@ export class LLMLogger {
     try {
       fs.appendFileSync(this.logFilePath, logLine, "utf8");
     } catch (error) {
-      console.error("Failed to write to LLM log file:", error);
+      this.appLog.error({ err: error }, "Failed to write to LLM log file");
     }
   }
 
@@ -65,7 +67,7 @@ export class LLMLogger {
       const lines = content.trim().split("\n").filter(Boolean);
       return lines.map((line) => JSON.parse(line));
     } catch (error) {
-      console.error("Failed to read LLM log file:", error);
+      this.appLog.error({ err: error }, "Failed to read LLM log file");
       return [];
     }
   }
@@ -143,7 +145,7 @@ export class LLMLogger {
     try {
       fs.writeFileSync(this.logFilePath, "");
     } catch (error) {
-      console.error("Failed to clear LLM log file:", error);
+      this.appLog.error({ err: error }, "Failed to clear LLM log file");
     }
   }
 }

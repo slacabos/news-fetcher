@@ -39,11 +39,18 @@ const parseNumberMap = (value: string | undefined): Record<string, number> => {
   }
 };
 
+const defaultLogLevel =
+  process.env.NODE_ENV === "development" ? "debug" : "info";
+const logLevel = process.env.LOG_LEVEL || defaultLogLevel;
+
 export const config = {
   port: parseInt(process.env.PORT || "3000", 10),
   nodeEnv: process.env.NODE_ENV || "development",
   useMockData: process.env.USE_MOCK_DATA === "true",
   activeProviders: process.env.ACTIVE_NEWS_PROVIDERS?.split(",") || ["reddit"],
+  logging: {
+    level: logLevel,
+  },
 
   reddit: {
     clientId: process.env.REDDIT_CLIENT_ID || "",

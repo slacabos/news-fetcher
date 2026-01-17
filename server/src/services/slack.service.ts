@@ -1,6 +1,7 @@
 import { config } from "../config";
 import { db } from "../database";
 import { SummaryWithSources, SlackPostResult } from "../models/types";
+import { createLogger } from "../utils/logger";
 
 interface SlackBlock {
   type: string;
@@ -26,6 +27,8 @@ interface SlackApiResponse {
   error?: string;
   ts?: string;
 }
+
+const log = createLogger("services/slack");
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -118,7 +121,7 @@ export class SlackService {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error("Error posting to Slack:", error);
+      log.error({ err: error }, "Error posting to Slack");
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -177,7 +180,7 @@ export class SlackService {
         timestamp: new Date().toISOString(),
       };
     } catch (error) {
-      console.error("Error testing Slack connection:", error);
+      log.error({ err: error }, "Error testing Slack connection");
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",

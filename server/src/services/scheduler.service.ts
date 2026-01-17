@@ -1,47 +1,51 @@
 import cron, { ScheduledTask } from "node-cron";
 import { summaryService } from "./summary.service";
 import { config } from "../config";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("services/scheduler");
 
 export class SchedulerService {
   private task: ScheduledTask | null = null;
 
   start() {
-    console.log(
-      `Scheduler initialized. Will run daily at 8 AM (${config.scheduler.cronTime})`
+    log.info(
+      { cronTime: config.scheduler.cronTime },
+      "Scheduler initialized"
     );
 
     this.task = cron.schedule(config.scheduler.cronTime, async () => {
-      console.log("\n=== Scheduled task started ===");
-      console.log(`Time: ${new Date().toLocaleString()}`);
+      log.info("Scheduled task started");
+      log.debug({ time: new Date().toLocaleString() }, "Task time");
 
       try {
         // Generate summary for AI topic
         await summaryService.generateSummaryForTopic("AI");
-        console.log("Scheduled summary generation completed successfully");
+        log.info("Scheduled summary generation completed");
       } catch (error) {
-        console.error("Error in scheduled task:", error);
+        log.error({ err: error }, "Error in scheduled task");
       }
 
-      console.log("=== Scheduled task completed ===\n");
+      log.info("Scheduled task completed");
     });
 
-    console.log("Scheduler started successfully");
+    log.info("Scheduler started");
   }
 
   stop() {
     if (this.task) {
       this.task.stop();
-      console.log("Scheduler stopped");
+      log.info("Scheduler stopped");
     }
   }
 
   async runNow() {
-    console.log("Running scheduled task immediately...");
+    log.info("Running scheduled task immediately");
     try {
       await summaryService.generateSummaryForTopic("AI");
-      console.log("Manual scheduled task completed");
+      log.info("Manual scheduled task completed");
     } catch (error) {
-      console.error("Error in manual scheduled task:", error);
+      log.error({ err: error }, "Error in manual scheduled task");
       throw error;
     }
   }

@@ -3,6 +3,9 @@ import { config } from "../config";
 import { NewsItem, Topic } from "../models/types";
 import { db } from "../database";
 import { NewsProvider } from "./providers/base.provider";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("services/reddit");
 
 interface RedditPost {
   data: {
@@ -68,7 +71,7 @@ export class RedditService implements NewsProvider {
 
       return accessToken;
     } catch (error) {
-      console.error("Error getting Reddit access token:", error);
+      log.error({ err: error }, "Error getting Reddit access token");
       throw new Error("Failed to authenticate with Reddit API");
     }
   }
@@ -89,7 +92,10 @@ export class RedditService implements NewsProvider {
 
       return response.data;
     } catch (error) {
-      console.error(`Error making Reddit API request to ${endpoint}:`, error);
+      log.error(
+        { err: error, endpoint },
+        "Error making Reddit API request"
+      );
       throw error;
     }
   }
@@ -99,7 +105,7 @@ export class RedditService implements NewsProvider {
     const subreddits = sources.reddit || [];
 
     if (subreddits.length === 0) {
-      console.log(
+      log.info(
         `No subreddits configured for topic ${topic.name} and provider ${this.providerName}`
       );
       return [];
@@ -107,11 +113,11 @@ export class RedditService implements NewsProvider {
 
     const keywords: string[] = JSON.parse(topic.keywords);
 
-    console.log(
+    log.info(
       `Fetching posts for topic: ${topic.name} from provider: ${this.providerName}`
     );
-    console.log(`Subreddits: ${subreddits.join(", ")}`);
-    console.log(`Keywords: ${keywords.join(", ")}`);
+    log.debug({ subreddits }, "Reddit subreddits");
+    log.debug({ keywords }, "Reddit keywords");
 
     const posts = new Map<string, NewsItem>();
     const oneDayAgo = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
@@ -119,7 +125,7 @@ export class RedditService implements NewsProvider {
     // Fetch from subreddits
     for (const subreddit of subreddits) {
       try {
-        console.log(`Fetching from r/${subreddit}...`);
+        log.debug({ subreddit }, "Fetching subreddit posts");
         const response = await this.makeRedditRequest(
           `/r/${subreddit}/hot?limit=50`
         );
@@ -154,7 +160,10 @@ export class RedditService implements NewsProvider {
           }
         }
       } catch (error) {
-        console.error(`Error fetching from r/${subreddit}:`, error);
+        log.error(
+          { err: error, subreddit },
+          "Error fetching subreddit posts"
+        );
       }
     }
 
@@ -162,7 +171,7 @@ export class RedditService implements NewsProvider {
     for (const keyword of keywords.slice(0, 3)) {
       // Limit keyword searches to avoid rate limits
       try {
-        console.log(`Searching Reddit for keyword: ${keyword}...`);
+        log.debug({ keyword }, "Searching Reddit for keyword");
         const response = await this.makeRedditRequest(
           `/search?q=${encodeURIComponent(keyword)}&t=day&sort=hot&limit=20`
         );
@@ -192,12 +201,15 @@ export class RedditService implements NewsProvider {
           }
         }
       } catch (error) {
-        console.error(`Error searching for keyword ${keyword}:`, error);
+        log.error(
+          { err: error, keyword },
+          "Error searching Reddit for keyword"
+        );
       }
     }
 
     const newsItems = Array.from(posts.values());
-    console.log(
+    log.info(
       `Found ${newsItems.length} unique posts from ${this.providerName}`
     );
 
@@ -214,7 +226,7 @@ export class RedditService implements NewsProvider {
           savedItems.push(existing);
         }
       } catch (error) {
-        console.error(`Error saving news item:`, error);
+        log.error({ err: error, url: item.url }, "Error saving news item");
       }
     }
 

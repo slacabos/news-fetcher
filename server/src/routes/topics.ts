@@ -1,7 +1,9 @@
 import { Router, Request, Response } from "express";
 import { db } from "../database";
+import { createLogger } from "../utils/logger";
 
 const router = Router();
+const log = createLogger("routes/topics");
 
 // GET /api/topics - Get all active topics
 router.get("/", async (req: Request, res: Response) => {
@@ -19,7 +21,7 @@ router.get("/", async (req: Request, res: Response) => {
 
     res.json(formattedTopics);
   } catch (error) {
-    console.error("Error fetching topics:", error);
+    log.error({ err: error }, "Error fetching topics");
     res.status(500).json({ error: "Failed to fetch topics" });
   }
 });

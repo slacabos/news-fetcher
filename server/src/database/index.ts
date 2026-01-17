@@ -6,6 +6,9 @@ import {
   Topic,
   SlackPost,
 } from "../models/types";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("database");
 
 export class DatabaseService {
   private db: Database.Database;
@@ -74,7 +77,7 @@ export class DatabaseService {
       .get();
     const topicCount = topicRow ? topicRow.count : 0;
     if (topicCount === 0 && Array.isArray(config.topics)) {
-      console.log("Seeding topics...");
+      log.info("Seeding topics...");
       const insertStmt = this.db.prepare(
         `INSERT INTO topics (name, keywords, sources, active) VALUES (?, ?, ?, ?)`
       );

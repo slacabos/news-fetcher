@@ -4,6 +4,9 @@ import { NewsItem } from "../../models/types";
 import { BaseLLMService } from "./base.llm.service";
 import { LLMLogger } from "./logger.service";
 import { buildSummaryMessages } from "./prompt-builders";
+import { createLogger } from "../../utils/logger";
+
+const log = createLogger("services/llm/ollama");
 
 interface OllamaGenerateRequest {
   model: string;
@@ -44,8 +47,9 @@ export class OllamaLLMService extends BaseLLMService {
 
     const startTime = Date.now();
 
-    console.log(
-      `[Ollama] Generating summary for ${newsItems.length} news items using ${this.model}...`
+    log.info(
+      { itemCount: newsItems.length, model: this.model },
+      "Generating Ollama summary"
     );
 
     // Sort by score to prioritize important posts
@@ -92,10 +96,12 @@ export class OllamaLLMService extends BaseLLMService {
         success: true,
       });
 
-      console.log(
-        `[Ollama] Summary generated successfully (${latencyMs}ms, ~${
-          estimatedInputTokens + estimatedOutputTokens
-        } tokens)`
+      log.info(
+        {
+          latencyMs,
+          totalTokens: estimatedInputTokens + estimatedOutputTokens,
+        },
+        "Ollama summary generated successfully"
       );
       return summary;
     } catch (error) {
@@ -113,7 +119,7 @@ export class OllamaLLMService extends BaseLLMService {
         errorMessage: error instanceof Error ? error.message : "Unknown error",
       });
 
-      console.error("[Ollama] Error generating summary:", error);
+      log.error({ err: error }, "Error generating Ollama summary");
       throw new Error("Failed to generate summary with Ollama");
     }
   }
@@ -153,7 +159,7 @@ export class OllamaLLMService extends BaseLLMService {
       });
       return response.status === 200;
     } catch (error) {
-      console.error("[Ollama] Health check failed:", error);
+      log.error({ err: error }, "Ollama health check failed");
       return false;
     }
   }

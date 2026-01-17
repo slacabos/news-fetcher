@@ -4,6 +4,9 @@ import { NewsItem, SummaryWithSources } from "../models/types";
 import { newsProviderFactory } from "./provider.factory";
 import { slackService } from "./slack.service";
 import { config } from "../config";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("services/summary");
 
 export class SummaryService {
   private selectItemsForSummary(items: NewsItem[]): {
@@ -78,10 +81,9 @@ export class SummaryService {
     let quotaScale = 1;
     if (quotaTotal > 1) {
       quotaScale = 1 / quotaTotal;
-      console.log(
-        `Summary source quotas sum to ${quotaTotal.toFixed(
-          2
-        )}; scaling down to fit within 1.0`
+      log.warn(
+        { quotaTotal },
+        "Summary source quotas sum above 1.0; scaling down"
       );
     }
 
@@ -149,9 +151,7 @@ export class SummaryService {
   async generateSummaryForTopic(
     topicName: string
   ): Promise<SummaryWithSources> {
-    console.log(
-      `\n=== Starting summary generation for topic: ${topicName} ===`
-    );
+    log.info({ topic: topicName }, "Starting summary generation");
 
     const topic = db.getTopicByName(topicName);
     if (!topic) {
@@ -159,11 +159,13 @@ export class SummaryService {
     }
 
     const providers = newsProviderFactory.getActiveProviders();
-    console.log(
-      `Using providers: ${providers.map((p) => p.providerName).join(", ")}`
+    log.debug(
+      { providers: providers.map((p) => p.providerName) },
+      "Using providers"
     );
-    console.log(
-      `Using ${llmService.getProviderName()} LLM (${llmService.getModelName()})`
+    log.debug(
+      { provider: llmService.getProviderName(), model: llmService.getModelName() },
+      "Using LLM provider"
     );
 
     // Fetch news items from all active providers
@@ -173,9 +175,9 @@ export class SummaryService {
         const items = await provider.fetchNewsForTopic(topic);
         allNewsItems.push(...items);
       } catch (error) {
-        console.error(
-          `Error fetching news from ${provider.providerName}:`,
-          error
+        log.error(
+          { err: error, provider: provider.providerName },
+          "Error fetching news from provider"
         );
       }
     }
@@ -186,7 +188,7 @@ export class SummaryService {
     );
 
     if (uniqueNewsItems.length === 0) {
-      console.log("No news items found, creating empty summary");
+      log.info({ topic: topicName }, "No news items found");
       const summaryText = `No new posts found for ${topicName} in the last 24 hours.`;
       const summaryId = db.insertSummary({
         topic: topicName,
@@ -215,13 +217,16 @@ export class SummaryService {
         .map((item) => item.title)
         .join(" | ");
       const overflow = discardedItems.length - previewLimit;
-      const previewSuffix = overflow > 0 ? ` (+${overflow} more)` : "";
-      const previewText = previewTitles
-        ? `: ${previewTitles}${previewSuffix}`
-        : "";
 
-      console.log(
-        `Truncating news items from ${uniqueNewsItems.length} to ${itemsForSummary.length}. Discarded ${discardedItems.length} items${previewText}`
+      log.debug(
+        {
+          total: uniqueNewsItems.length,
+          selected: itemsForSummary.length,
+          discarded: discardedItems.length,
+          preview: previewTitles || undefined,
+          overflow: overflow > 0 ? overflow : 0,
+        },
+        "Truncating news items for summary"
       );
     }
 
@@ -245,8 +250,7 @@ export class SummaryService {
       }
     }
 
-    console.log(`Summary created with ID: ${summaryId}`);
-    console.log(`=== Summary generation complete ===\n`);
+    log.info({ summaryId, topic: topicName }, "Summary created");
 
     // Post to Slack if enabled and auto-post is on (only for non-empty summaries)
     if (
@@ -264,12 +268,15 @@ export class SummaryService {
         });
 
         if (slackResult.success) {
-          console.log("✅ Summary posted to Slack successfully");
+          log.info({ summaryId }, "Summary posted to Slack successfully");
         } else {
-          console.log(`⚠️ Failed to post to Slack: ${slackResult.error}`);
+          log.warn(
+            { summaryId, error: slackResult.error },
+            "Failed to post summary to Slack"
+          );
         }
       } catch (error) {
-        console.error("❌ Error posting to Slack:", error);
+        log.error({ err: error, summaryId }, "Error posting summary to Slack");
         // Don't throw - summary generation succeeded
       }
     }

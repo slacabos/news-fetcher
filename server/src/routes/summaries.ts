@@ -1,7 +1,9 @@
 import { Router, Request, Response } from "express";
 import { summaryService } from "../services/summary.service";
+import { createLogger } from "../utils/logger";
 
 const router = Router();
+const log = createLogger("routes/summaries");
 
 // GET /api/summaries/latest - Get the most recent summary
 router.get("/latest", async (req: Request, res: Response) => {
@@ -14,7 +16,7 @@ router.get("/latest", async (req: Request, res: Response) => {
 
     res.json(summary);
   } catch (error) {
-    console.error("Error fetching latest summary:", error);
+    log.error({ err: error }, "Error fetching latest summary");
     res.status(500).json({ error: "Failed to fetch latest summary" });
   }
 });
@@ -36,7 +38,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 
     res.json(summary);
   } catch (error) {
-    console.error("Error fetching summary:", error);
+    log.error({ err: error }, "Error fetching summary");
     res.status(500).json({ error: "Failed to fetch summary" });
   }
 });
@@ -59,7 +61,7 @@ router.get("/", async (req: Request, res: Response) => {
     const summaries = summaryService.getSummariesWithSources(filters);
     res.json(summaries);
   } catch (error) {
-    console.error("Error fetching summaries:", error);
+    log.error({ err: error }, "Error fetching summaries");
     res.status(500).json({ error: "Failed to fetch summaries" });
   }
 });

@@ -3,6 +3,9 @@ import { BaseLLMService } from "./base.llm.service";
 import { OllamaLLMService } from "./ollama.llm.service";
 import { OpenAILLMService } from "./openai.llm.service";
 import { LLMLogger } from "./logger.service";
+import { createLogger } from "../../utils/logger";
+
+const log = createLogger("services/llm/factory");
 
 /**
  * Factory function to create the appropriate LLM service based on configuration
@@ -16,7 +19,7 @@ export function createLLMService(): BaseLLMService {
     config.llm.logging.enabled
   );
 
-  console.log(`[LLM Factory] Initializing ${provider} provider...`);
+  log.info({ provider }, "Initializing LLM provider");
 
   switch (provider) {
     case "openai":

@@ -2,8 +2,10 @@ import axios from "axios";
 import { NewsItem, Topic } from "../../models/types";
 import { db } from "../../database";
 import { NewsProvider } from "./base.provider";
+import { createLogger } from "../../utils/logger";
 
 const API_BASE_URL = "https://hacker-news.firebaseio.com/v0";
+const log = createLogger("services/providers/hackernews");
 
 interface HNStory {
   id: number;
@@ -19,21 +21,17 @@ export class HackerNewsService implements NewsProvider {
   async fetchNewsForTopic(topic: Topic): Promise<NewsItem[]> {
     const sources = JSON.parse(topic.sources);
     const hnSources = sources.hackernews || [];
-    console.log(
-      `Hacker News sources for topic ${topic.name}: ${JSON.stringify(
-        hnSources
-      )}`
-    );
+    log.debug({ topic: topic.name, sources: hnSources }, "HN sources");
 
     if (hnSources.length === 0) {
-      console.log(
+      log.info(
         `No sources configured for topic ${topic.name} and provider ${this.providerName}`
       );
       return [];
     }
 
     const keywords: string[] = JSON.parse(topic.keywords);
-    console.log(
+    log.info(
       `Fetching posts for topic: ${topic.name} from provider: ${this.providerName}`
     );
 
@@ -44,8 +42,9 @@ export class HackerNewsService implements NewsProvider {
       const limitedTopIds = topIds.slice(0, 100);
       allStoryIds.push(...limitedTopIds);
       sourceCounts.top = limitedTopIds.length;
-      console.log(
-        `Pulled ${sourceCounts.top} story IDs from Hacker News topstories`
+      log.debug(
+        { count: sourceCounts.top },
+        "Pulled story IDs from Hacker News topstories"
       );
     }
     if (hnSources.includes("new")) {
@@ -53,8 +52,9 @@ export class HackerNewsService implements NewsProvider {
       const limitedNewIds = newIds.slice(0, 100);
       allStoryIds.push(...limitedNewIds);
       sourceCounts.new = limitedNewIds.length;
-      console.log(
-        `Pulled ${sourceCounts.new} story IDs from Hacker News newstories`
+      log.debug(
+        { count: sourceCounts.new },
+        "Pulled story IDs from Hacker News newstories"
       );
     }
     if (hnSources.includes("best")) {
@@ -62,14 +62,16 @@ export class HackerNewsService implements NewsProvider {
       const limitedBestIds = bestIds.slice(0, 100);
       allStoryIds.push(...limitedBestIds);
       sourceCounts.best = limitedBestIds.length;
-      console.log(
-        `Pulled ${sourceCounts.best} story IDs from Hacker News beststories`
+      log.debug(
+        { count: sourceCounts.best },
+        "Pulled story IDs from Hacker News beststories"
       );
     }
 
     const storyIds = [...new Set(allStoryIds)]; // Deduplicate IDs
-    console.log(
-      `Total unique Hacker News story IDs after dedupe: ${storyIds.length}`
+    log.debug(
+      { count: storyIds.length },
+      "Total unique Hacker News story IDs after dedupe"
     );
 
     const twentyFourHoursAgo = Date.now() / 1000 - 86400;
@@ -101,11 +103,14 @@ export class HackerNewsService implements NewsProvider {
           }
         }
       } catch (error) {
-        console.error(`Error fetching story ${id} from Hacker News:`, error);
+        log.error(
+          { err: error, id },
+          "Error fetching story from Hacker News"
+        );
       }
     }
 
-    console.log(
+    log.info(
       `Found ${newsItems.length} unique posts from ${this.providerName}`
     );
 
@@ -121,7 +126,7 @@ export class HackerNewsService implements NewsProvider {
           savedItems.push(existing);
         }
       } catch (error) {
-        console.error(`Error saving news item:`, error);
+        log.error({ err: error, url: item.url }, "Error saving news item");
       }
     }
 
@@ -137,7 +142,10 @@ export class HackerNewsService implements NewsProvider {
       );
       return data;
     } catch (error) {
-      console.error(`Error fetching ${endpoint} from Hacker News:`, error);
+      log.error(
+        { err: error, endpoint },
+        "Error fetching Hacker News stories"
+      );
       return [];
     }
   }

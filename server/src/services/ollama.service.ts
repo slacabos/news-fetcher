@@ -1,6 +1,7 @@
 import axios from "axios";
 import { config } from "../config";
 import { NewsItem } from "../models/types";
+import { createLogger } from "../utils/logger";
 
 interface OllamaGenerateRequest {
   model: string;
@@ -12,6 +13,8 @@ interface OllamaGenerateResponse {
   response: string;
   done: boolean;
 }
+
+const log = createLogger("services/ollama-legacy");
 
 export class OllamaService {
   private apiUrl: string;
@@ -27,8 +30,9 @@ export class OllamaService {
       return "No news items found for this topic.";
     }
 
-    console.log(
-      `Generating summary for ${newsItems.length} news items using ${this.model}...`
+    log.info(
+      { itemCount: newsItems.length, model: this.model },
+      "Generating summary"
     );
 
     // Sort by score to prioritize important posts
@@ -52,10 +56,10 @@ export class OllamaService {
       );
 
       const summary = response.data.response.trim();
-      console.log("Summary generated successfully");
+      log.info("Summary generated successfully");
       return summary;
     } catch (error) {
-      console.error("Error generating summary with Ollama:", error);
+      log.error({ err: error }, "Error generating summary with Ollama");
       throw new Error("Failed to generate summary");
     }
   }
@@ -102,7 +106,7 @@ Keep the summary informative and newsworthy. Use proper markdown formatting thro
       });
       return response.status === 200;
     } catch (error) {
-      console.error("Ollama health check failed:", error);
+      log.error({ err: error }, "Ollama health check failed");
       return false;
     }
   }

@@ -1,11 +1,14 @@
 import { NewsItem, Topic } from "../models/types";
 import { NewsProvider } from "./providers/base.provider";
+import { createLogger } from "../utils/logger";
+
+const log = createLogger("services/mock-reddit");
 
 export class MockRedditService implements NewsProvider {
   providerName = "reddit";
 
   async fetchNewsForTopic(topic: Topic): Promise<NewsItem[]> {
-    console.log(`[MOCK] Fetching posts for topic: ${topic.name}`);
+    log.debug({ topic: topic.name }, "[MOCK] Fetching posts for topic");
 
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -45,8 +48,9 @@ export class MockRedditService implements NewsProvider {
       },
     ];
 
-    console.log(
-      `[MOCK] Generated ${mockPosts.length} mock posts for ${this.providerName}`
+    log.debug(
+      { count: mockPosts.length, provider: this.providerName },
+      "[MOCK] Generated mock posts"
     );
     return mockPosts;
   }
