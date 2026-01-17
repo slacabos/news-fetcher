@@ -17,7 +17,7 @@ AI News Aggregator that fetches daily news from Reddit, summarizes them using LL
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 24+
 - **Either**: Ollama installed and running locally (free, recommended for development)
 - **Or**: OpenAI API key (paid, recommended for production)
 - Reddit API credentials (create an app at https://www.reddit.com/prefs/apps)

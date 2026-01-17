@@ -6,6 +6,146 @@ import { slackService } from "./slack.service";
 import { config } from "../config";
 
 export class SummaryService {
+  private selectItemsForSummary(items: NewsItem[]): {
+    selected: NewsItem[];
+    discarded: NewsItem[];
+  } {
+    const maxItems = config.summary.maxItems;
+    const shouldCap = Number.isFinite(maxItems) && maxItems > 0;
+
+    const sortByScore = (list: NewsItem[]): NewsItem[] =>
+      [...list].sort((a, b) => {
+        const scoreDiff = b.score - a.score;
+        if (scoreDiff !== 0) return scoreDiff;
+        return b.created_at - a.created_at;
+      });
+
+    if (!shouldCap || items.length <= maxItems) {
+      return { selected: sortByScore(items), discarded: [] };
+    }
+
+    const sourceWeights = config.summary.sourceWeights ?? {};
+    const sourceQuotas = config.summary.sourceQuotas ?? {};
+
+    type ScoredItem = {
+      item: NewsItem;
+      source: string;
+      normalizedScore: number;
+      weightedScore: number;
+    };
+
+    const itemsBySource = new Map<string, NewsItem[]>();
+    for (const item of items) {
+      const source = item.source_type || "unknown";
+      const bucket = itemsBySource.get(source);
+      if (bucket) {
+        bucket.push(item);
+      } else {
+        itemsBySource.set(source, [item]);
+      }
+    }
+
+    const scoredBySource = new Map<string, ScoredItem[]>();
+    for (const [source, sourceItems] of itemsBySource.entries()) {
+      const scores = sourceItems.map((item) => item.score);
+      const maxScore = Math.max(...scores);
+      const minScore = Math.min(...scores);
+      const range = maxScore - minScore;
+      const weight = Number.isFinite(sourceWeights[source])
+        ? sourceWeights[source]
+        : 1;
+
+      const scoredItems = sourceItems.map((item) => {
+        const normalizedScore = range === 0 ? 1 : (item.score - minScore) / range;
+        return {
+          item,
+          source,
+          normalizedScore,
+          weightedScore: normalizedScore * weight,
+        };
+      });
+      scoredBySource.set(source, scoredItems);
+    }
+
+    let quotaTotal = 0;
+    for (const [source] of scoredBySource.entries()) {
+      const quota = sourceQuotas[source];
+      if (Number.isFinite(quota) && quota > 0) {
+        quotaTotal += quota;
+      }
+    }
+
+    let quotaScale = 1;
+    if (quotaTotal > 1) {
+      quotaScale = 1 / quotaTotal;
+      console.log(
+        `Summary source quotas sum to ${quotaTotal.toFixed(
+          2
+        )}; scaling down to fit within 1.0`
+      );
+    }
+
+    const selected: ScoredItem[] = [];
+    const selectedUrls = new Set<string>();
+
+    for (const [source, scoredItems] of scoredBySource.entries()) {
+      const quota = sourceQuotas[source];
+      if (!Number.isFinite(quota) || quota <= 0) {
+        continue;
+      }
+
+      const targetCount = Math.floor(quota * quotaScale * maxItems);
+      if (targetCount <= 0) {
+        continue;
+      }
+
+      const ranked = [...scoredItems].sort((a, b) => {
+        const scoreDiff = b.normalizedScore - a.normalizedScore;
+        if (scoreDiff !== 0) return scoreDiff;
+        return b.item.created_at - a.item.created_at;
+      });
+
+      for (const scored of ranked) {
+        if (selected.length >= maxItems) {
+          break;
+        }
+        if (selected.length >= targetCount) {
+          break;
+        }
+        if (!selectedUrls.has(scored.item.url)) {
+          selected.push(scored);
+          selectedUrls.add(scored.item.url);
+        }
+      }
+    }
+
+    const remainingSlots = maxItems - selected.length;
+    if (remainingSlots > 0) {
+      const remaining = Array.from(scoredBySource.values())
+        .flat()
+        .filter((scored) => !selectedUrls.has(scored.item.url))
+        .sort((a, b) => {
+          const weightDiff = b.weightedScore - a.weightedScore;
+          if (weightDiff !== 0) return weightDiff;
+          const scoreDiff = b.normalizedScore - a.normalizedScore;
+          if (scoreDiff !== 0) return scoreDiff;
+          return b.item.created_at - a.item.created_at;
+        });
+
+      for (const scored of remaining.slice(0, remainingSlots)) {
+        selected.push(scored);
+        selectedUrls.add(scored.item.url);
+      }
+    }
+
+    const selectedItems = sortByScore(selected.map((scored) => scored.item));
+    const discardedItems = items.filter(
+      (item) => !selectedUrls.has(item.url)
+    );
+
+    return { selected: selectedItems, discarded: discardedItems };
+  }
+
   async generateSummaryForTopic(
     topicName: string
   ): Promise<SummaryWithSources> {
@@ -63,9 +203,31 @@ export class SummaryService {
       };
     }
 
+    const { selected: itemsForSummary, discarded: discardedItems } =
+      this.selectItemsForSummary(uniqueNewsItems);
+    const maxItems = config.summary.maxItems;
+    const shouldCap = Number.isFinite(maxItems) && maxItems > 0;
+
+    if (shouldCap && discardedItems.length > 0) {
+      const previewLimit = 5;
+      const previewTitles = discardedItems
+        .slice(0, previewLimit)
+        .map((item) => item.title)
+        .join(" | ");
+      const overflow = discardedItems.length - previewLimit;
+      const previewSuffix = overflow > 0 ? ` (+${overflow} more)` : "";
+      const previewText = previewTitles
+        ? `: ${previewTitles}${previewSuffix}`
+        : "";
+
+      console.log(
+        `Truncating news items from ${uniqueNewsItems.length} to ${itemsForSummary.length}. Discarded ${discardedItems.length} items${previewText}`
+      );
+    }
+
     // Generate summary using LLM service
     const summaryMarkdown = await llmService.generateSummary(
-      uniqueNewsItems,
+      itemsForSummary,
       topicName
     );
 
@@ -77,7 +239,7 @@ export class SummaryService {
     });
 
     // Link news items to summary
-    for (const item of uniqueNewsItems) {
+    for (const item of itemsForSummary) {
       if (item.id) {
         db.insertSummarySource(summaryId, item.id);
       }
@@ -90,7 +252,7 @@ export class SummaryService {
     if (
       config.slack.enabled &&
       config.slack.autoPost &&
-      uniqueNewsItems.length > 0
+      itemsForSummary.length > 0
     ) {
       try {
         const slackResult = await slackService.postSummary({
@@ -98,7 +260,7 @@ export class SummaryService {
           topic: topicName,
           summary_markdown: summaryMarkdown,
           created_at: new Date().toISOString(),
-          sources: uniqueNewsItems,
+          sources: itemsForSummary,
         });
 
         if (slackResult.success) {
@@ -117,7 +279,7 @@ export class SummaryService {
       topic: topicName,
       summary_markdown: summaryMarkdown,
       created_at: new Date().toISOString(),
-      sources: uniqueNewsItems,
+      sources: itemsForSummary,
     };
   }
 

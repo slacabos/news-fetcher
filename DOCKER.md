@@ -81,7 +81,7 @@ The application consists of two services:
 
 ### Server Container
 
-- **Image**: Node.js 18 Alpine
+- **Image**: Node.js 24 Alpine
 - **Port**: 3000
 - **Function**: Express API server, handles news fetching, LLM summarization, and scheduling
 - **Volumes**:

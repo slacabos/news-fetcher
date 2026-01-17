@@ -7,6 +7,38 @@ dotenv.config({ path: "../.env" });
 
 const modelPricing = assertModelPricingMap(rawModelPricing);
 
+const parsePositiveInt = (value: string | undefined, fallback: number): number => {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const parseNumberMap = (value: string | undefined): Record<string, number> => {
+  if (!value) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+      return {};
+    }
+
+    const result: Record<string, number> = {};
+    for (const [key, rawValue] of Object.entries(parsed)) {
+      const num =
+        typeof rawValue === "number"
+          ? rawValue
+          : Number.parseFloat(String(rawValue));
+      if (Number.isFinite(num)) {
+        result[key] = num;
+      }
+    }
+    return result;
+  } catch {
+    return {};
+  }
+};
+
 export const config = {
   port: parseInt(process.env.PORT || "3000", 10),
   nodeEnv: process.env.NODE_ENV || "development",
@@ -52,6 +84,12 @@ export const config = {
   },
 
   topics: topicsConfig,
+
+  summary: {
+    maxItems: parsePositiveInt(process.env.SUMMARY_MAX_ITEMS, 40),
+    sourceWeights: parseNumberMap(process.env.SUMMARY_SOURCE_WEIGHTS),
+    sourceQuotas: parseNumberMap(process.env.SUMMARY_SOURCE_QUOTAS),
+  },
 
   scheduler: {
     cronTime: "0 8 * * *", // 8 AM daily
