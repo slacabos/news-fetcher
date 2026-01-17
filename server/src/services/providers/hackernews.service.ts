@@ -19,6 +19,11 @@ export class HackerNewsService implements NewsProvider {
   async fetchNewsForTopic(topic: Topic): Promise<NewsItem[]> {
     const sources = JSON.parse(topic.sources);
     const hnSources = sources.hackernews || [];
+    console.log(
+      `Hacker News sources for topic ${topic.name}: ${JSON.stringify(
+        hnSources
+      )}`
+    );
 
     if (hnSources.length === 0) {
       console.log(
@@ -33,20 +38,39 @@ export class HackerNewsService implements NewsProvider {
     );
 
     const allStoryIds: number[] = [];
+    const sourceCounts: Record<string, number> = {};
     if (hnSources.includes("top")) {
       const topIds = await this.fetchStoryIds("topstories");
-      allStoryIds.push(...topIds.slice(0, 100));
+      const limitedTopIds = topIds.slice(0, 100);
+      allStoryIds.push(...limitedTopIds);
+      sourceCounts.top = limitedTopIds.length;
+      console.log(
+        `Pulled ${sourceCounts.top} story IDs from Hacker News topstories`
+      );
     }
     if (hnSources.includes("new")) {
       const newIds = await this.fetchStoryIds("newstories");
-      allStoryIds.push(...newIds.slice(0, 100));
+      const limitedNewIds = newIds.slice(0, 100);
+      allStoryIds.push(...limitedNewIds);
+      sourceCounts.new = limitedNewIds.length;
+      console.log(
+        `Pulled ${sourceCounts.new} story IDs from Hacker News newstories`
+      );
     }
     if (hnSources.includes("best")) {
       const bestIds = await this.fetchStoryIds("beststories");
-      allStoryIds.push(...bestIds.slice(0, 100));
+      const limitedBestIds = bestIds.slice(0, 100);
+      allStoryIds.push(...limitedBestIds);
+      sourceCounts.best = limitedBestIds.length;
+      console.log(
+        `Pulled ${sourceCounts.best} story IDs from Hacker News beststories`
+      );
     }
 
     const storyIds = [...new Set(allStoryIds)]; // Deduplicate IDs
+    console.log(
+      `Total unique Hacker News story IDs after dedupe: ${storyIds.length}`
+    );
 
     const twentyFourHoursAgo = Date.now() / 1000 - 86400;
 

@@ -25,7 +25,9 @@
       "Midjourney",
       "Bard",
       "Gemini",
-      "LLaMA"
+      "LLaMA",
+      "Cursor",
+      "Hugging Face"
     ],
     "sources": {
       "reddit": [
