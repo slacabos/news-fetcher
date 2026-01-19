@@ -67,4 +67,3 @@ services:
     depends_on:
       - server
     restart: unless-stopped
-
