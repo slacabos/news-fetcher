@@ -50,8 +50,8 @@ services:
       - SLACK_CHANNEL_ID=${SLACK_CHANNEL_ID:-general}
       - SLACK_AUTO_POST=${SLACK_AUTO_POST:-false}
     volumes:
-      - news-data:/app/data
-      - llm-logs:/app/logs
+      - ./data:/app/data
+      - ./logs:/app/logs
     restart: unless-stopped
     extra_hosts:
       # Allows Docker container to access Ollama running on host machine
@@ -68,8 +68,3 @@ services:
       - server
     restart: unless-stopped
 
-volumes:
-  news-data:
-    driver: local
-  llm-logs:
-    driver: local
