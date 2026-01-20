@@ -235,9 +235,10 @@ export class RedditService implements NewsProvider {
 
   private findMatchingKeywords(text: string, keywords: string[]): string[] {
     const lowerText = text.toLowerCase();
-    return keywords.filter((keyword) =>
-      lowerText.includes(keyword.toLowerCase())
-    );
+    return keywords.filter((keyword) => {
+      const pattern = new RegExp(`\\b${keyword.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      return pattern.test(text);
+    });
   }
 }
 
