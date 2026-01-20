@@ -103,10 +103,7 @@ export class HackerNewsService implements NewsProvider {
           }
         }
       } catch (error) {
-        log.error(
-          { err: error, id },
-          "Error fetching story from Hacker News"
-        );
+        log.error({ err: error, id }, "Error fetching story from Hacker News");
       }
     }
 
@@ -142,10 +139,7 @@ export class HackerNewsService implements NewsProvider {
       );
       return data;
     } catch (error) {
-      log.error(
-        { err: error, endpoint },
-        "Error fetching Hacker News stories"
-      );
+      log.error({ err: error, endpoint }, "Error fetching Hacker News stories");
       return [];
     }
   }
@@ -153,7 +147,10 @@ export class HackerNewsService implements NewsProvider {
   private findMatchingKeywords(text: string, keywords: string[]): string[] {
     const lowerText = text.toLowerCase();
     return keywords.filter((keyword) => {
-      const pattern = new RegExp(`\\b${keyword.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      const pattern = new RegExp(
+        `\\b${keyword.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+        "i"
+      );
       return pattern.test(text);
     });
   }

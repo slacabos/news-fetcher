@@ -92,10 +92,7 @@ export class RedditService implements NewsProvider {
 
       return response.data;
     } catch (error) {
-      log.error(
-        { err: error, endpoint },
-        "Error making Reddit API request"
-      );
+      log.error({ err: error, endpoint }, "Error making Reddit API request");
       throw error;
     }
   }
@@ -160,10 +157,7 @@ export class RedditService implements NewsProvider {
           }
         }
       } catch (error) {
-        log.error(
-          { err: error, subreddit },
-          "Error fetching subreddit posts"
-        );
+        log.error({ err: error, subreddit }, "Error fetching subreddit posts");
       }
     }
 
@@ -236,7 +230,10 @@ export class RedditService implements NewsProvider {
   private findMatchingKeywords(text: string, keywords: string[]): string[] {
     const lowerText = text.toLowerCase();
     return keywords.filter((keyword) => {
-      const pattern = new RegExp(`\\b${keyword.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+      const pattern = new RegExp(
+        `\\b${keyword.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`,
+        "i"
+      );
       return pattern.test(text);
     });
   }
