@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { config } from "./config";
 import { schedulerService } from "./services/scheduler.service";
 import summariesRouter from "./routes/summaries";
@@ -7,6 +8,8 @@ import topicsRouter from "./routes/topics";
 import fetchRouter from "./routes/fetch";
 import llmRouter from "./routes/llm";
 import slackRouter from "./routes/slack";
+import authRouter from "./routes/auth";
+import { requireAuth } from "./middleware/auth";
 import { createLogger } from "./utils/logger";
 
 const app = express();
@@ -27,6 +30,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 
 // Request logging
 app.use((req, res, next) => {
@@ -34,20 +38,23 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
-app.use("/api/summaries", summariesRouter);
-app.use("/api/topics", topicsRouter);
-app.use("/api/fetch", fetchRouter);
-app.use("/api/llm", llmRouter);
-app.use("/api/slack", slackRouter);
-
-// Health check
+// Health check (public)
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
   });
 });
+
+// Auth routes (public)
+app.use("/api/auth", authRouter);
+
+// Protected routes
+app.use("/api/summaries", requireAuth, summariesRouter);
+app.use("/api/topics", requireAuth, topicsRouter);
+app.use("/api/fetch", requireAuth, fetchRouter);
+app.use("/api/llm", requireAuth, llmRouter);
+app.use("/api/slack", requireAuth, slackRouter);
 
 // Root route
 app.get("/", (req, res) => {

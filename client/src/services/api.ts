@@ -1,14 +1,47 @@
 import axios from "axios";
 import type { SummaryWithSources, Topic } from "../types";
 
-const API_BASE_URL = "http://localhost:3000/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      window.dispatchEvent(new CustomEvent("auth:unauthorized"));
+    }
+    return Promise.reject(error);
+  }
+);
+
+export interface AuthUser {
+  email: string;
+  name: string;
+  picture: string;
+}
+
+export const authApi = {
+  loginWithGoogle: async (credential: string): Promise<{ user: AuthUser }> => {
+    const response = await api.post("/auth/google", { credential });
+    return response.data;
+  },
+
+  getMe: async (): Promise<{ user: AuthUser }> => {
+    const response = await api.get("/auth/me");
+    return response.data;
+  },
+
+  logout: async (): Promise<void> => {
+    await api.post("/auth/logout");
+  },
+};
 
 export const summaryApi = {
   getLatest: async (): Promise<SummaryWithSources> => {

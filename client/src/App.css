@@ -51,6 +51,7 @@
 .brand-copy h1 {
   font-size: clamp(1.5rem, 2.8vw, 2.75rem);
   color: #fff;
+  text-wrap: balance;
 }
 
 .brand-copy p {
@@ -77,6 +78,11 @@
 
 .nav-link:hover {
   color: #fff;
+}
+
+.nav-link:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }
 
 .nav-link.is-active {
@@ -120,9 +126,119 @@
   }
 }
 
+/* Login page */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.login-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 2.5rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-soft);
+  max-width: 400px;
+  width: 100%;
+}
+
+.login-logo {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 1.5rem;
+}
+
+.login-card h1 {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+  color: #fff;
+}
+
+.login-card > p {
+  color: var(--color-subtle);
+  margin-bottom: 2rem;
+}
+
+.login-error {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.2);
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.login-button-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+/* Loading screen */
+.loading-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-subtle);
+}
+
+/* Header right section */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.sign-out-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem 0.35rem 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--color-subtle);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.sign-out-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.sign-out-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 @media (max-width: 600px) {
   .app-shell {
     padding: 1.5rem;
+  }
+
+  .site-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-right {
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .brand-mark {
@@ -132,7 +248,10 @@
   }
 
   .primary-nav {
-    width: 100%;
-    justify-content: space-between;
+    align-self: center;
+  }
+
+  .sign-out-btn {
+    align-self: center;
   }
 }

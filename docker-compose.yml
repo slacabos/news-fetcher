@@ -50,6 +50,12 @@ services:
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
       - SLACK_CHANNEL_ID=${SLACK_CHANNEL_ID:-general}
       - SLACK_AUTO_POST=${SLACK_AUTO_POST:-false}
+
+      # Google OAuth
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - JWT_SECRET=${JWT_SECRET:-}
+      - ALLOWED_EMAIL_DOMAINS=${ALLOWED_EMAIL_DOMAINS:-}
+      - ALLOWED_EMAILS=${ALLOWED_EMAILS:-}
     volumes:
       - ./logs:/app/logs
     restart: unless-stopped
@@ -61,6 +67,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.client
+      args:
+        - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
     container_name: news-fetcher-client
     ports:
       - "8080:80"

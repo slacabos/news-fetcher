@@ -13,6 +13,10 @@ RUN npm install --workspace=client
 # Copy client source code
 COPY client ./client
 
+# Accept Google Client ID as build arg for Vite
+ARG VITE_GOOGLE_CLIENT_ID
+ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+
 # Build the React app
 RUN npm run build --workspace=client
 

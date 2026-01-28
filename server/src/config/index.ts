@@ -109,4 +109,17 @@ export const config = {
     channelId: process.env.SLACK_CHANNEL_ID || "general",
     autoPost: process.env.SLACK_AUTO_POST === "true",
   },
+
+  auth: {
+    googleClientId: process.env.GOOGLE_CLIENT_ID || "",
+    jwtSecret: process.env.JWT_SECRET || "dev-secret-change-me",
+    allowedDomains: (process.env.ALLOWED_EMAIL_DOMAINS || "")
+      .split(",")
+      .map((d) => d.trim().toLowerCase())
+      .filter(Boolean),
+    allowedEmails: (process.env.ALLOWED_EMAILS || "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  },
 };
