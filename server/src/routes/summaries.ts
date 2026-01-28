@@ -8,7 +8,7 @@ const log = createLogger("routes/summaries");
 // GET /api/summaries/latest - Get the most recent summary
 router.get("/latest", async (req: Request, res: Response) => {
   try {
-    const summary = summaryService.getLatestSummaryWithSources();
+    const summary = await summaryService.getLatestSummaryWithSources();
 
     if (!summary) {
       return res.status(404).json({ error: "No summaries found" });
@@ -30,7 +30,7 @@ router.get("/:id", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid summary ID" });
     }
 
-    const summary = summaryService.getSummaryByIdWithSources(id);
+    const summary = await summaryService.getSummaryByIdWithSources(id);
 
     if (!summary) {
       return res.status(404).json({ error: "Summary not found" });
@@ -58,7 +58,7 @@ router.get("/", async (req: Request, res: Response) => {
       filters.topic = topic;
     }
 
-    const summaries = summaryService.getSummariesWithSources(filters);
+    const summaries = await summaryService.getSummariesWithSources(filters);
     res.json(summaries);
   } catch (error) {
     log.error({ err: error }, "Error fetching summaries");

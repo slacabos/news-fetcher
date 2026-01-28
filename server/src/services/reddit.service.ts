@@ -212,9 +212,9 @@ export class RedditService implements NewsProvider {
     for (const item of newsItems) {
       try {
         // Check if already exists
-        const existing = db.getNewsItemByUrl(item.url);
+        const existing = await db.getNewsItemByUrl(item.url);
         if (!existing) {
-          const id = db.insertNewsItem(item);
+          const id = await db.insertNewsItem(item);
           savedItems.push({ ...item, id });
         } else {
           savedItems.push(existing);

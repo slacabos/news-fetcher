@@ -17,13 +17,13 @@ router.post("/send/:id", async (req: Request, res: Response) => {
     }
 
     // Get summary with sources
-    const summary = db.getSummaryById(summaryId);
+    const summary = await db.getSummaryById(summaryId);
     if (!summary) {
       res.status(404).json({ error: "Summary not found" });
       return;
     }
 
-    const sources = db.getSourcesBySummaryId(summaryId);
+    const sources = await db.getSourcesBySummaryId(summaryId);
 
     // Check if summary has sources (never post empty)
     if (sources.length === 0) {

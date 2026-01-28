@@ -73,7 +73,7 @@ export class SlackService {
 
       // Check for duplicates
       if (summary.id) {
-        const alreadyPosted = db.checkIfSummaryPostedToSlack(
+        const alreadyPosted = await db.checkIfSummaryPostedToSlack(
           summary.id,
           this.channelId
         );
@@ -113,7 +113,7 @@ export class SlackService {
       // Save to database
       if (summary.id) {
         const messageTs = responseData.ts || new Date().toISOString();
-        db.insertSlackPost(summary.id, this.channelId, messageTs);
+        await db.insertSlackPost(summary.id, this.channelId, messageTs);
       }
 
       return {

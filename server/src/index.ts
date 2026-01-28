@@ -15,7 +15,9 @@ const log = createLogger("app");
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:8080"], // Vite dev server and Docker
+    origin: config.nodeEnv === "development"
+      ? true  // Allow all origins in development
+      : ["http://localhost:5173", "http://localhost:8080"],
     credentials: true,
   })
 );

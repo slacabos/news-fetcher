@@ -87,7 +87,8 @@ export const config = {
   },
 
   database: {
-    path: process.env.DATABASE_PATH || "./news.sqlite",
+    url: process.env.TURSO_DATABASE_URL || "",
+    authToken: process.env.TURSO_AUTH_TOKEN || "",
   },
 
   topics: topicsConfig,

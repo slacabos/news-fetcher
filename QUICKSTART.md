@@ -2,6 +2,24 @@
 
 ## 🚀 Get Started in 5 Minutes
 
+### Prerequisites: Set up Turso Database
+
+1. **Install Turso CLI and create database**
+   ```bash
+   # Install Turso CLI
+   curl -sSfL https://get.tur.so/install.sh | bash
+
+   # Login to Turso
+   turso auth login
+
+   # Create database
+   turso db create news-fetcher
+
+   # Get credentials (save these!)
+   turso db show news-fetcher --url
+   turso db tokens create news-fetcher
+   ```
+
 ### Option 1: Using Ollama (Free, Local)
 
 1. **Install Ollama** (if not already installed)
@@ -24,6 +42,11 @@
 3. **Configure the app** (`.env`)
 
    ```bash
+   # Turso Database
+   TURSO_DATABASE_URL=libsql://your-database.turso.io
+   TURSO_AUTH_TOKEN=your-auth-token-here
+
+   # LLM Provider
    LLM_PROVIDER=ollama
    OLLAMA_API_URL=http://localhost:11434
    OLLAMA_MODEL=gpt-oss:20b
@@ -54,6 +77,11 @@
 2. **Configure the app** (`.env`)
 
    ```bash
+   # Turso Database
+   TURSO_DATABASE_URL=libsql://your-database.turso.io
+   TURSO_AUTH_TOKEN=your-auth-token-here
+
+   # LLM Provider
    LLM_PROVIDER=openai
    OPENAI_API_KEY=sk-your-actual-key-here
    OPENAI_MODEL=gpt-4-turbo-preview
@@ -113,6 +141,22 @@ curl http://localhost:3000/api/llm/provider | jq
 
 ## 🐛 Troubleshooting
 
+### Turso Database Not Working?
+
+```bash
+# Check if Turso CLI is installed
+turso --version
+
+# Test database connection
+turso db shell news-fetcher
+
+# List your databases
+turso db list
+
+# Regenerate auth token if needed
+turso db tokens create news-fetcher
+```
+
 ### Ollama Not Working?
 
 ```bash
@@ -141,11 +185,12 @@ curl https://api.openai.com/v1/models \
 
 ### Still Having Issues?
 
-1. Check `.env` file is in the correct location
-2. Restart the server after changing `.env`
-3. Check server logs for error messages
-4. Verify `npm install` completed successfully
-5. See [LLM_PROVIDER_GUIDE.md](./LLM_PROVIDER_GUIDE.md) for detailed troubleshooting
+1. Verify Turso credentials are correct in `.env`
+2. Check `.env` file is in the correct location
+3. Restart the server after changing `.env`
+4. Check server logs for database connection errors
+5. Verify `npm install` completed successfully
+6. See [LLM_PROVIDER_GUIDE.md](./LLM_PROVIDER_GUIDE.md) for detailed troubleshooting
 
 ## 💡 Tips
 
@@ -158,8 +203,9 @@ curl https://api.openai.com/v1/models \
 
 ## 📁 Important Files
 
-- `.env` - Configuration (LLM provider, API keys)
+- `.env` - Configuration (Turso credentials, LLM provider, API keys)
 - `llm-requests.log` - All LLM requests logged here
+- `server/src/database/index.ts` - Turso database client
 - `server/src/services/llm/` - LLM service implementations
 - `LLM_PROVIDER_GUIDE.md` - Detailed documentation
 
@@ -221,8 +267,9 @@ Typical news summary generation:
 
 After setup, verify:
 
-- [ ] Server starts without errors
-- [ ] Correct provider shown in startup logs
+- [ ] Turso database is created and credentials are set
+- [ ] Server starts without database connection errors
+- [ ] Correct LLM provider shown in startup logs
 - [ ] Can fetch summaries (`POST /api/fetch`)
 - [ ] Logs are being written (`llm-requests.log`)
 - [ ] Stats endpoint works (`GET /api/llm/stats`)

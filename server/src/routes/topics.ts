@@ -8,7 +8,7 @@ const log = createLogger("routes/topics");
 // GET /api/topics - Get all active topics
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const topics = db.getTopics();
+    const topics = await db.getTopics();
 
     // Parse JSON strings back to arrays
     const formattedTopics = topics.map((topic) => ({

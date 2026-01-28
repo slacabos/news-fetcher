@@ -4,7 +4,7 @@ FROM node:24-alpine AS builder
 WORKDIR /app
 
 # Install build dependencies for native modules
-RUN apk add --no-cache python3 make g++ pkgconfig sqlite-dev
+RUN apk add --no-cache python3 make g++
 
 # Copy root package files
 COPY package*.json ./
@@ -24,8 +24,8 @@ FROM node:24-alpine
 
 WORKDIR /app
 
-# Install runtime/build dependencies for native modules
-RUN apk add --no-cache python3 make g++ pkgconfig sqlite-dev
+# Install runtime dependencies for native modules
+RUN apk add --no-cache python3 make g++
 
 # Copy root package files
 COPY package*.json ./
@@ -38,15 +38,14 @@ RUN npm install --workspace=server --omit=dev
 COPY --from=builder /app/server/dist ./server/dist
 COPY server/src/config/*.json ./server/dist/config/
 
-# Create directory for database and logs
-RUN mkdir -p /app/data /app/logs
+# Create directory for logs
+RUN mkdir -p /app/logs
 
 # Expose port
 EXPOSE 3000
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV DATABASE_PATH=/app/data/news.sqlite
 ENV LLM_LOG_PATH=/app/logs/llm-requests.log
 
 # Start the server

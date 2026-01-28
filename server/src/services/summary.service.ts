@@ -153,7 +153,7 @@ export class SummaryService {
   ): Promise<SummaryWithSources> {
     log.info({ topic: topicName }, "Starting summary generation");
 
-    const topic = db.getTopicByName(topicName);
+    const topic = await db.getTopicByName(topicName);
     if (!topic) {
       throw new Error(`Topic ${topicName} not found`);
     }
@@ -190,7 +190,7 @@ export class SummaryService {
     if (uniqueNewsItems.length === 0) {
       log.info({ topic: topicName }, "No news items found");
       const summaryText = `No new posts found for ${topicName} in the last 24 hours.`;
-      const summaryId = db.insertSummary({
+      const summaryId = await db.insertSummary({
         topic: topicName,
         summary_markdown: summaryText,
         created_at: new Date().toISOString(),
@@ -237,7 +237,7 @@ export class SummaryService {
     );
 
     // Save summary to database
-    const summaryId = db.insertSummary({
+    const summaryId = await db.insertSummary({
       topic: topicName,
       summary_markdown: summaryMarkdown,
       created_at: new Date().toISOString(),
@@ -246,7 +246,7 @@ export class SummaryService {
     // Link news items to summary
     for (const item of itemsForSummary) {
       if (item.id) {
-        db.insertSummarySource(summaryId, item.id);
+        await db.insertSummarySource(summaryId, item.id);
       }
     }
 
@@ -290,37 +290,40 @@ export class SummaryService {
     };
   }
 
-  getLatestSummaryWithSources(): SummaryWithSources | null {
-    const summary = db.getLatestSummary();
+  async getLatestSummaryWithSources(): Promise<SummaryWithSources | null> {
+    const summary = await db.getLatestSummary();
     if (!summary || !summary.id) {
       return null;
     }
 
-    const sources = db.getSourcesBySummaryId(summary.id);
+    const sources = await db.getSourcesBySummaryId(summary.id);
     return {
       ...summary,
       sources,
     };
   }
 
-  getSummariesWithSources(filters?: {
+  async getSummariesWithSources(filters?: {
     date?: string;
     topic?: string;
-  }): SummaryWithSources[] {
-    const summaries = db.getSummaries(filters);
-    return summaries.map((summary) => ({
-      ...summary,
-      sources: summary.id ? db.getSourcesBySummaryId(summary.id) : [],
-    }));
+  }): Promise<SummaryWithSources[]> {
+    const summaries = await db.getSummaries(filters);
+    const summariesWithSources = await Promise.all(
+      summaries.map(async (summary) => ({
+        ...summary,
+        sources: summary.id ? await db.getSourcesBySummaryId(summary.id) : [],
+      }))
+    );
+    return summariesWithSources;
   }
 
-  getSummaryByIdWithSources(id: number): SummaryWithSources | null {
-    const summary = db.getSummaryById(id);
+  async getSummaryByIdWithSources(id: number): Promise<SummaryWithSources | null> {
+    const summary = await db.getSummaryById(id);
     if (!summary || !summary.id) {
       return null;
     }
 
-    const sources = db.getSourcesBySummaryId(summary.id);
+    const sources = await db.getSourcesBySummaryId(summary.id);
     return {
       ...summary,
       sources,

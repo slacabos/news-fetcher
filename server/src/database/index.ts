@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { createClient, Client } from "@libsql/client";
 import { config } from "../config";
 import {
   NewsItem,
@@ -11,16 +11,24 @@ import { createLogger } from "../utils/logger";
 const log = createLogger("database");
 
 export class DatabaseService {
-  private db: Database.Database;
+  private db: Client;
+  private initialized: Promise<void>;
 
   constructor() {
-    this.db = new Database(config.database.path);
-    this.initialize();
+    this.db = createClient({
+      url: config.database.url,
+      authToken: config.database.authToken,
+    });
+    this.initialized = this.initialize().catch((error) => {
+      log.error({ err: error }, "Failed to initialize database");
+      throw error;
+    });
   }
 
-  private initialize() {
+  private async initialize() {
     // Create tables
-    this.db.exec(`
+    await this.db.batch([
+      `
       CREATE TABLE IF NOT EXISTS news_items (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
@@ -30,31 +38,35 @@ export class DatabaseService {
         score INTEGER DEFAULT 0,
         matched_keywords TEXT,
         created_at INTEGER NOT NULL
-      );
-
+      )
+      `,
+      `
       CREATE TABLE IF NOT EXISTS summaries (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         topic TEXT NOT NULL,
         summary_markdown TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-
+      )
+      `,
+      `
       CREATE TABLE IF NOT EXISTS summary_sources (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         summary_id INTEGER NOT NULL,
         news_item_id INTEGER NOT NULL,
         FOREIGN KEY (summary_id) REFERENCES summaries(id),
         FOREIGN KEY (news_item_id) REFERENCES news_items(id)
-      );
-
+      )
+      `,
+      `
       CREATE TABLE IF NOT EXISTS topics (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL UNIQUE,
         keywords TEXT NOT NULL,
         sources TEXT NOT NULL,
         active INTEGER DEFAULT 1
-      );
-
+      )
+      `,
+      `
       CREATE TABLE IF NOT EXISTS slack_posts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         summary_id INTEGER NOT NULL,
@@ -63,33 +75,40 @@ export class DatabaseService {
         posted_at TEXT NOT NULL DEFAULT (datetime('now')),
         UNIQUE(summary_id, slack_channel_id),
         FOREIGN KEY (summary_id) REFERENCES summaries(id)
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_news_created_at ON news_items(created_at);
-      CREATE INDEX IF NOT EXISTS idx_summaries_created_at ON summaries(created_at);
-      CREATE INDEX IF NOT EXISTS idx_summaries_topic ON summaries(topic);
-      CREATE INDEX IF NOT EXISTS idx_slack_posts_summary ON slack_posts(summary_id);
-    `);
+      )
+      `,
+      `CREATE INDEX IF NOT EXISTS idx_news_created_at ON news_items(created_at)`,
+      `CREATE INDEX IF NOT EXISTS idx_summaries_created_at ON summaries(created_at)`,
+      `CREATE INDEX IF NOT EXISTS idx_summaries_topic ON summaries(topic)`,
+      `CREATE INDEX IF NOT EXISTS idx_slack_posts_summary ON slack_posts(summary_id)`,
+    ], "write");
 
     // Seed initial topics if the table is empty
-    const topicRow = this.db
-      .prepare<[], { count: number }>("SELECT COUNT(*) as count FROM topics")
-      .get();
-    const topicCount = topicRow ? topicRow.count : 0;
+    const topicRow = await this.db.execute({
+      sql: "SELECT COUNT(*) as count FROM topics",
+      args: [],
+    });
+    const topicCount = topicRow.rows[0]?.count as number || 0;
     if (topicCount === 0 && Array.isArray(config.topics)) {
       log.info("Seeding topics...");
-      const insertStmt = this.db.prepare(
-        `INSERT INTO topics (name, keywords, sources, active) VALUES (?, ?, ?, ?)`
-      );
       for (const topic of config.topics) {
-        insertStmt.run(
-          topic.name,
-          JSON.stringify(topic.keywords),
-          JSON.stringify(topic.sources),
-          topic.active
-        );
+        await this.db.execute({
+          sql: `INSERT INTO topics (name, keywords, sources, active) VALUES (?, ?, ?, ?)`,
+          args: [
+            topic.name,
+            JSON.stringify(topic.keywords),
+            JSON.stringify(topic.sources),
+            topic.active,
+          ],
+        });
       }
     }
+
+    log.info("Database initialized successfully");
+  }
+
+  async waitForInit(): Promise<void> {
+    await this.initialized;
   }
 
   private normalizeRowId(rowId: number | bigint): number {
@@ -97,152 +116,182 @@ export class DatabaseService {
   }
 
   // News Items
-  insertNewsItem(item: NewsItem): number {
-    const stmt = this.db.prepare(`
-      INSERT INTO news_items (title, url, source, source_type, score, matched_keywords, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-    const result = stmt.run(
-      item.title,
-      item.url,
-      item.source,
-      item.source_type,
-      item.score,
-      item.matched_keywords,
-      item.created_at
-    );
-    return this.normalizeRowId(result.lastInsertRowid);
+  async insertNewsItem(item: NewsItem): Promise<number> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: `
+        INSERT INTO news_items (title, url, source, source_type, score, matched_keywords, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+      args: [
+        item.title,
+        item.url,
+        item.source,
+        item.source_type,
+        item.score,
+        item.matched_keywords,
+        item.created_at,
+      ],
+    });
+    return this.normalizeRowId(result.lastInsertRowid!);
   }
 
-  getNewsItemByUrl(url: string): NewsItem | undefined {
-    return this.db
-      .prepare<[string], NewsItem>("SELECT * FROM news_items WHERE url = ?")
-      .get(url);
+  async getNewsItemByUrl(url: string): Promise<NewsItem | undefined> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: "SELECT * FROM news_items WHERE url = ?",
+      args: [url],
+    });
+    return result.rows[0] as unknown as NewsItem | undefined;
   }
 
-  getNewsItemsByIds(ids: number[]): NewsItem[] {
+  async getNewsItemsByIds(ids: number[]): Promise<NewsItem[]> {
+    await this.initialized;
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => "?").join(",");
-    return this.db
-      .prepare<number[], NewsItem>(
-        `SELECT * FROM news_items WHERE id IN (${placeholders})`
-      )
-      .all(...ids);
+    const result = await this.db.execute({
+      sql: `SELECT * FROM news_items WHERE id IN (${placeholders})`,
+      args: ids,
+    });
+    return result.rows as unknown as NewsItem[];
   }
 
   // Summaries
-  insertSummary(summary: Summary): number {
-    const stmt = this.db.prepare(`
-      INSERT INTO summaries (topic, summary_markdown, created_at)
-      VALUES (?, ?, datetime('now'))
-    `);
-    const result = stmt.run(summary.topic, summary.summary_markdown);
-    return this.normalizeRowId(result.lastInsertRowid);
+  async insertSummary(summary: Summary): Promise<number> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: `
+        INSERT INTO summaries (topic, summary_markdown, created_at)
+        VALUES (?, ?, datetime('now'))
+      `,
+      args: [summary.topic, summary.summary_markdown],
+    });
+    return this.normalizeRowId(result.lastInsertRowid!);
   }
 
-  getLatestSummary(): Summary | undefined {
-    return this.db
-      .prepare<[], Summary>(
-        "SELECT * FROM summaries ORDER BY created_at DESC LIMIT 1"
-      )
-      .get();
+  async getLatestSummary(): Promise<Summary | undefined> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: "SELECT * FROM summaries ORDER BY created_at DESC LIMIT 1",
+      args: [],
+    });
+    return result.rows[0] as unknown as Summary | undefined;
   }
 
-  getSummaries(filters?: { date?: string; topic?: string }): Summary[] {
+  async getSummaries(filters?: { date?: string; topic?: string }): Promise<Summary[]> {
+    await this.initialized;
     let query = "SELECT * FROM summaries WHERE 1=1";
-    const params: string[] = [];
+    const args: string[] = [];
 
     if (filters?.date) {
       query += " AND DATE(created_at) = ?";
-      params.push(filters.date);
+      args.push(filters.date);
     }
 
     if (filters?.topic) {
       query += " AND topic = ?";
-      params.push(filters.topic);
+      args.push(filters.topic);
     }
 
     query += " ORDER BY created_at DESC";
 
-    return this.db.prepare<string[], Summary>(query).all(...params);
+    const result = await this.db.execute({
+      sql: query,
+      args,
+    });
+    return result.rows as unknown as Summary[];
   }
 
-  getSummaryById(id: number): Summary | undefined {
-    return this.db
-      .prepare<[number], Summary>("SELECT * FROM summaries WHERE id = ?")
-      .get(id);
+  async getSummaryById(id: number): Promise<Summary | undefined> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: "SELECT * FROM summaries WHERE id = ?",
+      args: [id],
+    });
+    return result.rows[0] as unknown as Summary | undefined;
   }
 
   // Summary Sources
-  insertSummarySource(summaryId: number, newsItemId: number) {
-    this.db
-      .prepare(
-        `
-      INSERT INTO summary_sources (summary_id, news_item_id)
-      VALUES (?, ?)
-    `
-      )
-      .run(summaryId, newsItemId);
+  async insertSummarySource(summaryId: number, newsItemId: number): Promise<void> {
+    await this.initialized;
+    await this.db.execute({
+      sql: `
+        INSERT INTO summary_sources (summary_id, news_item_id)
+        VALUES (?, ?)
+      `,
+      args: [summaryId, newsItemId],
+    });
   }
 
-  getSourcesBySummaryId(summaryId: number): NewsItem[] {
-    return this.db
-      .prepare<[number], NewsItem>(
-        `
-      SELECT n.* FROM news_items n
-      INNER JOIN summary_sources ss ON n.id = ss.news_item_id
-      WHERE ss.summary_id = ?
-      ORDER BY n.score DESC
-    `
-      )
-      .all(summaryId);
+  async getSourcesBySummaryId(summaryId: number): Promise<NewsItem[]> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: `
+        SELECT n.* FROM news_items n
+        INNER JOIN summary_sources ss ON n.id = ss.news_item_id
+        WHERE ss.summary_id = ?
+        ORDER BY n.score DESC
+      `,
+      args: [summaryId],
+    });
+    return result.rows as unknown as NewsItem[];
   }
 
   // Topics
-  getTopics(): Topic[] {
-    return this.db
-      .prepare<[], Topic>("SELECT * FROM topics WHERE active = 1")
-      .all();
+  async getTopics(): Promise<Topic[]> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: "SELECT * FROM topics WHERE active = 1",
+      args: [],
+    });
+    return result.rows as unknown as Topic[];
   }
 
-  getTopicByName(name: string): Topic | undefined {
-    return this.db
-      .prepare<[string], Topic>("SELECT * FROM topics WHERE name = ?")
-      .get(name);
+  async getTopicByName(name: string): Promise<Topic | undefined> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: "SELECT * FROM topics WHERE name = ?",
+      args: [name],
+    });
+    return result.rows[0] as unknown as Topic | undefined;
   }
 
   // Slack Posts
-  checkIfSummaryPostedToSlack(summaryId: number, channelId: string): boolean {
-    const result = this.db
-      .prepare(
-        "SELECT id FROM slack_posts WHERE summary_id = ? AND slack_channel_id = ?"
-      )
-      .get(summaryId, channelId);
-    return result !== undefined;
+  async checkIfSummaryPostedToSlack(summaryId: number, channelId: string): Promise<boolean> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: "SELECT id FROM slack_posts WHERE summary_id = ? AND slack_channel_id = ?",
+      args: [summaryId, channelId],
+    });
+    return result.rows.length > 0;
   }
 
-  insertSlackPost(
+  async insertSlackPost(
     summaryId: number,
     channelId: string,
     messageTs: string
-  ): number {
-    const stmt = this.db.prepare(`
-      INSERT INTO slack_posts (summary_id, slack_channel_id, slack_message_ts)
-      VALUES (?, ?, ?)
-    `);
-    const result = stmt.run(summaryId, channelId, messageTs);
-    return this.normalizeRowId(result.lastInsertRowid);
+  ): Promise<number> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: `
+        INSERT INTO slack_posts (summary_id, slack_channel_id, slack_message_ts)
+        VALUES (?, ?, ?)
+      `,
+      args: [summaryId, channelId, messageTs],
+    });
+    return this.normalizeRowId(result.lastInsertRowid!);
   }
 
-  getSlackPostBySummaryId(
+  async getSlackPostBySummaryId(
     summaryId: number,
     channelId: string
-  ): SlackPost | undefined {
-    return this.db
-      .prepare<[number, string], SlackPost>(
-        "SELECT * FROM slack_posts WHERE summary_id = ? AND slack_channel_id = ? ORDER BY posted_at DESC LIMIT 1"
-      )
-      .get(summaryId, channelId);
+  ): Promise<SlackPost | undefined> {
+    await this.initialized;
+    const result = await this.db.execute({
+      sql: "SELECT * FROM slack_posts WHERE summary_id = ? AND slack_channel_id = ? ORDER BY posted_at DESC LIMIT 1",
+      args: [summaryId, channelId],
+    });
+    return result.rows[0] as unknown as SlackPost | undefined;
   }
 
   close() {

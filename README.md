@@ -9,7 +9,7 @@ AI News Aggregator that fetches daily news from Reddit, summarizes them using LL
 - ⚙️ **Flexible topic configuration** via a centralized JSON file.
 - 🎯 **Provider-specific prompt optimization** for better results
 - 💰 **Cost monitoring and logging** for all LLM requests
-- 📊 SQLite database for storage
+- 📊 Turso Cloud database (serverless SQLite)
 - 🌐 REST API for accessing summaries
 - ⚛️ React frontend with markdown rendering
 - ⏰ Automated daily fetching at 8 AM
@@ -18,6 +18,7 @@ AI News Aggregator that fetches daily news from Reddit, summarizes them using LL
 ## Prerequisites
 
 - Node.js 24+
+- **Turso Cloud account** (free tier available at https://turso.tech)
 - **Either**: Ollama installed and running locally (free, recommended for development)
 - **Or**: OpenAI API key (paid, recommended for production)
 - Reddit API credentials (create an app at https://www.reddit.com/prefs/apps)
@@ -43,9 +44,32 @@ See [LLM_PROVIDER_GUIDE.md](./LLM_PROVIDER_GUIDE.md) for detailed configuration 
 ## Setup
 
 1. Clone the repository
-2. Copy `.env.example` to `.env` and fill in your credentials:
+
+2. **Set up Turso Database**:
+   ```bash
+   # Install Turso CLI
+   curl -sSfL https://get.tur.so/install.sh | bash
+
+   # Login to Turso
+   turso auth login
+
+   # Create a new database
+   turso db create news-fetcher
+
+   # Get database URL
+   turso db show news-fetcher --url
+
+   # Generate auth token
+   turso db tokens create news-fetcher
+   ```
+
+3. Copy `.env.example` to `.env` and fill in your credentials:
 
    ```bash
+   # Turso Database Configuration
+   TURSO_DATABASE_URL=libsql://your-database.turso.io
+   TURSO_AUTH_TOKEN=your-auth-token-here
+
    # Active news providers to fetch from
    ACTIVE_NEWS_PROVIDERS=reddit,hackernews
 
@@ -70,11 +94,11 @@ See [LLM_PROVIDER_GUIDE.md](./LLM_PROVIDER_GUIDE.md) for detailed configuration 
    SLACK_AUTO_POST=true
    ```
 
-3. Install dependencies:
+4. Install dependencies:
    ```bash
    npm install
    ```
-4. Start development servers:
+5. Start development servers:
    ```bash
    npm run dev
    ```

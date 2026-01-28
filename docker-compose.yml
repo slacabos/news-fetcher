@@ -11,7 +11,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - DATABASE_PATH=/app/data/news.sqlite
+      - TURSO_DATABASE_URL=${TURSO_DATABASE_URL}
+      - TURSO_AUTH_TOKEN=${TURSO_AUTH_TOKEN}
       - LLM_LOG_PATH=/app/logs/llm-requests.log
 
       # LLM Provider Configuration
@@ -50,7 +51,6 @@ services:
       - SLACK_CHANNEL_ID=${SLACK_CHANNEL_ID:-general}
       - SLACK_AUTO_POST=${SLACK_AUTO_POST:-false}
     volumes:
-      - ./data:/app/data
       - ./logs:/app/logs
     restart: unless-stopped
     extra_hosts:

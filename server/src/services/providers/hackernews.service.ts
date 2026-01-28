@@ -115,9 +115,9 @@ export class HackerNewsService implements NewsProvider {
     const savedItems: NewsItem[] = [];
     for (const item of newsItems) {
       try {
-        const existing = db.getNewsItemByUrl(item.url);
+        const existing = await db.getNewsItemByUrl(item.url);
         if (!existing) {
-          const id = db.insertNewsItem(item);
+          const id = await db.insertNewsItem(item);
           savedItems.push({ ...item, id });
         } else {
           savedItems.push(existing);

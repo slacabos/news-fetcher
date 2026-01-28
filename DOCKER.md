@@ -7,6 +7,7 @@ This guide explains how to run the News Fetcher application using Docker.
 ### Prerequisites
 
 - Docker and Docker Compose installed
+- **Turso Cloud account** (free tier available at https://turso.tech)
 - Reddit API credentials (get them at https://www.reddit.com/prefs/apps)
 - **Either** Ollama running on your host machine **OR** OpenAI API key
 
@@ -21,6 +22,10 @@ cp .env.example .env
 Edit `.env` and add your credentials:
 
 ```bash
+# Turso Database (required)
+TURSO_DATABASE_URL=libsql://your-database.turso.io
+TURSO_AUTH_TOKEN=your-auth-token-here
+
 # Optional: Reddit API
 REDDIT_CLIENT_ID=your_client_id
 REDDIT_CLIENT_SECRET=your_client_secret
@@ -36,6 +41,12 @@ OLLAMA_MODEL=gpt-oss:20b
 # If using OpenAI (alternative, paid)
 # OPENAI_API_KEY=sk-...
 # OPENAI_MODEL=gpt-4-turbo-preview
+```
+
+**Note**: Get Turso credentials by running:
+```bash
+turso db show news-fetcher --url
+turso db tokens create news-fetcher
 ```
 
 ### 2. Build and Run
@@ -84,9 +95,9 @@ The application consists of two services:
 - **Image**: Node.js 24 Alpine
 - **Port**: 3000
 - **Function**: Express API server, handles news fetching, LLM summarization, and scheduling
+- **Database**: Turso Cloud (serverless SQLite)
 - **Volumes**:
-  - `news-data`: SQLite database persistence
-  - `llm-logs`: LLM request logs
+  - `./logs:/app/logs`: LLM request logs
 
 ### Client Container
 
@@ -97,26 +108,19 @@ The application consists of two services:
 
 ## Volumes
 
-The application uses Docker volumes for data persistence:
+The application uses a local volume for logs:
 
-- **news-data**: Stores the SQLite database
-- **llm-logs**: Stores LLM request logs for cost monitoring
+- **./logs**: Stores LLM request logs for cost monitoring (mounted from host)
 
-To inspect volumes:
+**Database**: Turso Cloud handles database persistence automatically - no local volume needed.
 
-```bash
-docker volume ls
-docker volume inspect news-fetcher_news-data
-```
-
-To backup data:
+To backup logs:
 
 ```bash
-# Backup database
-docker cp news-fetcher-server:/app/data/news.sqlite ./backup-news.sqlite
-
 # Backup logs
 docker cp news-fetcher-server:/app/logs/llm-requests.log ./backup-llm-logs.log
+# Or simply copy from ./logs directory on your host
+cp ./logs/llm-requests.log ./backup-llm-logs.log
 ```
 
 ## Common Commands
@@ -192,9 +196,20 @@ services:
       - "8081:80" # Changed from 8080:80
 ```
 
-### Database is empty after restart
+### Database connection issues
 
-Make sure you're not using the `-v` flag with `docker-compose down`, which deletes volumes.
+Check that your Turso credentials are correct:
+
+```bash
+# Verify credentials in .env
+cat .env | grep TURSO
+
+# Test connection with Turso CLI
+turso db show news-fetcher
+
+# Regenerate token if needed
+turso db tokens create news-fetcher
+```
 
 ### Client can't connect to server
 
