@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { GoogleLogin } from "@react-oauth/google";
+import "./LoginPage.css";
 
 interface LoginPageProps {
   onLoginSuccess: (credential: string) => Promise<void>;
