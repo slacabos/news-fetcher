@@ -228,18 +228,36 @@ export class SlackService {
     // Parse markdown sections
     const sections = this.parseMarkdownSections(summary.summary_markdown);
 
-    // Add each section as a Slack block
+    // Add each section as a Slack block (max 3000 chars per section text)
+    const SLACK_TEXT_LIMIT = 3000;
     for (const [sectionTitle, sectionContent] of Object.entries(sections)) {
+      // Skip sources from markdown — they're added separately below
+      if (sectionTitle.toLowerCase().includes("source")) continue;
       if (sectionContent.trim()) {
         const formattedContent =
           this.convertMarkdownToSlackMrkdwn(sectionContent);
-        blocks.push({
-          type: "section",
-          text: {
-            type: "mrkdwn",
-            text: `*${sectionTitle}*\n${formattedContent}`,
-          },
-        });
+        let text = `*${sectionTitle}*\n${formattedContent}`;
+
+        // Split into multiple blocks if text exceeds Slack's limit
+        while (text.length > 0) {
+          if (text.length <= SLACK_TEXT_LIMIT) {
+            blocks.push({
+              type: "section",
+              text: { type: "mrkdwn", text },
+            });
+            break;
+          }
+
+          // Find a newline near the limit to split cleanly
+          let splitAt = text.lastIndexOf("\n", SLACK_TEXT_LIMIT);
+          if (splitAt <= 0) splitAt = SLACK_TEXT_LIMIT;
+
+          blocks.push({
+            type: "section",
+            text: { type: "mrkdwn", text: text.slice(0, splitAt) },
+          });
+          text = text.slice(splitAt + 1);
+        }
       }
     }
 
@@ -266,7 +284,11 @@ export class SlackService {
             source.source_type === "reddit"
               ? `r/${source.source}`
               : source.source;
-          return `• <${source.url}|${source.title}> - ${sourceLabel} (↑${source.score})`;
+          // Sanitize title: remove characters that break Slack link syntax
+          const safeTitle = source.title
+            .replace(/[<>|]/g, "")
+            .slice(0, 200);
+          return `• <${source.url}|${safeTitle}> - ${sourceLabel} (↑${source.score})`;
         })
         .join("\n");
 
@@ -291,7 +313,8 @@ export class SlackService {
       }
     }
 
-    return { blocks };
+    // Slack allows a maximum of 50 blocks per message
+    return { blocks: blocks.slice(0, 50) };
   }
 
   private parseMarkdownSections(markdown: string): Record<string, string> {
