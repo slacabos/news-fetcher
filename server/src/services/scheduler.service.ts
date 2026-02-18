@@ -1,5 +1,6 @@
 import cron, { ScheduledTask } from "node-cron";
 import { summaryService } from "./summary.service";
+import { slackService } from "./slack.service";
 import { config } from "../config";
 import { createLogger } from "../utils/logger";
 
@@ -20,8 +21,16 @@ export class SchedulerService {
 
       try {
         // Generate summary for AI topic
-        await summaryService.generateSummaryForTopic("AI");
+        const summary = await summaryService.generateSummaryForTopic("AI");
         log.info("Scheduled summary generation completed");
+
+        // Post to Slack
+        const slackResult = await slackService.postSummary(summary);
+        if (slackResult.success) {
+          log.info("Scheduled Slack post completed");
+        } else {
+          log.warn({ error: slackResult.error }, "Slack post failed");
+        }
       } catch (error) {
         log.error({ err: error }, "Error in scheduled task");
       }
@@ -42,8 +51,15 @@ export class SchedulerService {
   async runNow() {
     log.info("Running scheduled task immediately");
     try {
-      await summaryService.generateSummaryForTopic("AI");
-      log.info("Manual scheduled task completed");
+      const summary = await summaryService.generateSummaryForTopic("AI");
+      log.info("Manual summary generation completed");
+
+      const slackResult = await slackService.postSummary(summary);
+      if (slackResult.success) {
+        log.info("Manual Slack post completed");
+      } else {
+        log.warn({ error: slackResult.error }, "Slack post failed");
+      }
     } catch (error) {
       log.error({ err: error }, "Error in manual scheduled task");
       throw error;
