@@ -32,7 +32,7 @@ export class OllamaService {
 
     log.info(
       { itemCount: newsItems.length, model: this.model },
-      "Generating summary"
+      "Generating summary",
     );
 
     // Sort by score to prioritize important posts
@@ -52,7 +52,7 @@ export class OllamaService {
         payload,
         {
           timeout: 120000, // 2 minutes timeout
-        }
+        },
       );
 
       const summary = response.data.response.trim();
@@ -70,7 +70,7 @@ export class OllamaService {
         (item, index) =>
           `${index + 1}. "${item.title}" (${item.source}, ${
             item.score
-          } upvotes)\n   URL: ${item.url}`
+          } upvotes)\n   URL: ${item.url}`,
       )
       .join("\n\n");
 
@@ -91,10 +91,6 @@ Write 2-3 sentences summarizing the key themes and trends.
 ## Notable Highlights
 - **Topic/Announcement**: Brief description
 - Focus on significant announcements or breakthroughs
-
-## Source Links
-Format each source as:
-- [Post Title](URL) - r/subreddit (score upvotes)
 
 Keep the summary informative and newsworthy. Use proper markdown formatting throughout.`;
   }

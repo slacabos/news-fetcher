@@ -7,7 +7,7 @@ export type SummaryPromptContext = {
 };
 
 export function buildSummaryMessages(
-  context: SummaryPromptContext
+  context: SummaryPromptContext,
 ): OpenAI.Chat.ChatCompletionMessageParam[] {
   const { topic, newsItems } = context;
 
@@ -40,10 +40,6 @@ Provide 2-3 sentences summarizing the main themes, trends, and overall sentiment
 Present 3-5 standout items in this format:
 - **Topic/Company Name**: Brief description of the highlight or announcement
 
-## Sources
-List all source posts in this format:
-- [Post Title](URL) - Source (score)
-
 Guidelines:
 - Use proper markdown formatting throughout
 - Be concise but informative
@@ -66,7 +62,7 @@ function formatNewsItems(newsItems: NewsItem[]): string {
       (item, index) =>
         `${index + 1}. **"${item.title}"**\n   - Source: ${
           item.source
-        }\n   - Score: ${item.score}\n   - URL: ${item.url}`
+        }\n   - Score: ${item.score}\n   - URL: ${item.url}`,
     )
     .join("\n\n");
 }
