@@ -27,18 +27,15 @@ function buildSystemPrompt(topic: string): string {
 
 When creating summaries, always use this exact structure:
 
-## Overview
-Provide 2-3 sentences summarizing the main themes, trends, and overall sentiment in ${topic} today.
+## Summary
+Provide 2-3 sentences summarizing the main themes, trends, and overall sentiment in ${topic} today, followed by 3-5 standout highlights in this format:
+- **Topic/Company Name**: Brief description of the highlight or announcement
 
-## Key Developments
+## Details
 - List major developments, announcements, or breakthroughs
 - Each bullet should be 1-2 sentences
 - Focus on concrete, newsworthy items
 - Order by significance (highest-scored posts first)
-
-## Notable Highlights
-Present 3-5 standout items in this format:
-- **Topic/Company Name**: Brief description of the highlight or announcement
 
 Guidelines:
 - Use proper markdown formatting throughout

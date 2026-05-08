@@ -71,12 +71,7 @@ describe("buildSummaryMessages", () => {
     });
     const systemPrompt = String(messages[0].content);
 
-    [
-      "## Overview",
-      "## Key Developments",
-      "## Notable Highlights",
-      "## Sources",
-    ].forEach((section) => {
+    ["## Summary", "## Details"].forEach((section) => {
       expect(systemPrompt).toContain(section);
     });
   });

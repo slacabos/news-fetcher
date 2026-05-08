@@ -22,6 +22,7 @@ interface SlackApiPayload {
   blocks: SlackBlock[];
   unfurl_links?: boolean;
   unfurl_media?: boolean;
+  thread_ts?: string;
 }
 
 interface SlackApiResponse {
@@ -88,36 +89,24 @@ export class SlackService {
         }
       }
 
-      // Format summary for Slack
-      const payload: SlackApiPayload = {
-        channel: this.channelId,
-        blocks: this.formatForSlack(summary).blocks,
-        unfurl_links: false,
-        unfurl_media: false,
-      };
+      const { mainBlocks, detailBlocks } = this.formatForSlack(summary);
 
-      // Send to Slack
-      const response = await fetch(this.apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          Authorization: `Bearer ${this.botToken}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      const mainResp = await this.postBlocks(mainBlocks);
 
-      const responseData = this.parseSlackResponse(await response.json());
-
-      if (!response.ok || !responseData.ok) {
-        throw new Error(
-          `Slack API error: ${responseData.error || response.statusText}`
-        );
+      if (summary.id) {
+        const messageTs = mainResp.ts || new Date().toISOString();
+        await db.insertSlackPost(summary.id, this.channelId, messageTs);
       }
 
-      // Save to database
-      if (summary.id) {
-        const messageTs = responseData.ts || new Date().toISOString();
-        await db.insertSlackPost(summary.id, this.channelId, messageTs);
+      if (detailBlocks.length > 0 && mainResp.ts) {
+        try {
+          await this.postBlocks(detailBlocks, mainResp.ts);
+        } catch (err) {
+          log.warn(
+            { err, summaryId: summary.id },
+            "Failed to post details thread reply"
+          );
+        }
       }
 
       return {
@@ -193,12 +182,14 @@ export class SlackService {
   }
 
   private formatForSlack(summary: SummaryWithSources): {
-    blocks: SlackBlock[];
+    mainBlocks: SlackBlock[];
+    detailBlocks: SlackBlock[];
   } {
-    const blocks: SlackBlock[] = [];
+    const mainBlocks: SlackBlock[] = [];
+    const detailBlocks: SlackBlock[] = [];
 
-    // Header
-    blocks.push({
+    // Header (main message only)
+    mainBlocks.push({
       type: "header",
       text: {
         type: "plain_text",
@@ -217,7 +208,7 @@ export class SlackService {
         day: "numeric",
       }
     );
-    blocks.push({
+    mainBlocks.push({
       type: "context",
       elements: [
         {
@@ -227,48 +218,56 @@ export class SlackService {
       ],
     });
 
-    blocks.push({ type: "divider" });
+    mainBlocks.push({ type: "divider" });
 
-    // Parse markdown sections
+    // Parse markdown sections — "Details" routes to the thread reply,
+    // every other section (Summary, plus any legacy section name) stays in main.
     const sections = this.parseMarkdownSections(summary.summary_markdown);
-
-    // Add each section as a Slack block (max 3000 chars per section text)
     const SLACK_TEXT_LIMIT = 3000;
     for (const [sectionTitle, sectionContent] of Object.entries(sections)) {
-      // Skip sources from markdown — they're added separately below
       if (sectionTitle.toLowerCase().includes("source")) continue;
-      if (sectionContent.trim()) {
-        const formattedContent =
-          this.convertMarkdownToSlackMrkdwn(sectionContent);
-        let text = `*${sectionTitle}*\n${formattedContent}`;
+      if (!sectionContent.trim()) continue;
 
-        // Split into multiple blocks if text exceeds Slack's limit
-        while (text.length > 0) {
-          if (text.length <= SLACK_TEXT_LIMIT) {
-            blocks.push({
-              type: "section",
-              text: { type: "mrkdwn", text },
-            });
-            break;
-          }
+      const isDetails = sectionTitle.toLowerCase() === "details";
+      const target = isDetails ? detailBlocks : mainBlocks;
 
-          // Find a newline near the limit to split cleanly
-          let splitAt = text.lastIndexOf("\n", SLACK_TEXT_LIMIT);
-          if (splitAt <= 0) splitAt = SLACK_TEXT_LIMIT;
+      if (isDetails && detailBlocks.length === 0) {
+        detailBlocks.push({
+          type: "context",
+          elements: [{ type: "mrkdwn", text: "📋 *Details*" }],
+        });
+      }
 
-          blocks.push({
+      const formattedContent =
+        this.convertMarkdownToSlackMrkdwn(sectionContent);
+      let text = isDetails
+        ? formattedContent
+        : `*${sectionTitle}*\n${formattedContent}`;
+
+      while (text.length > 0) {
+        if (text.length <= SLACK_TEXT_LIMIT) {
+          target.push({
             type: "section",
-            text: { type: "mrkdwn", text: text.slice(0, splitAt) },
+            text: { type: "mrkdwn", text },
           });
-          text = text.slice(splitAt + 1);
+          break;
         }
+
+        let splitAt = text.lastIndexOf("\n", SLACK_TEXT_LIMIT);
+        if (splitAt <= 0) splitAt = SLACK_TEXT_LIMIT;
+
+        target.push({
+          type: "section",
+          text: { type: "mrkdwn", text: text.slice(0, splitAt) },
+        });
+        text = text.slice(splitAt + 1);
       }
     }
 
-    // Sources section
+    // Sources section in main message
     if (summary.sources && summary.sources.length > 0) {
-      blocks.push({ type: "divider" });
-      blocks.push({
+      mainBlocks.push({ type: "divider" });
+      mainBlocks.push({
         type: "context",
         elements: [
           {
@@ -280,7 +279,6 @@ export class SlackService {
         ],
       });
 
-      // Add top sources (limit to avoid hitting block limits)
       const topSources = summary.sources.slice(0, 5);
       const sourcesText = topSources
         .map((source) => {
@@ -288,7 +286,6 @@ export class SlackService {
             source.source_type === "reddit"
               ? `r/${source.source}`
               : source.source;
-          // Sanitize title: remove characters that break Slack link syntax
           const safeTitle = source.title
             .replace(/[<>|]/g, "")
             .slice(0, 200);
@@ -296,16 +293,13 @@ export class SlackService {
         })
         .join("\n");
 
-      blocks.push({
+      mainBlocks.push({
         type: "section",
-        text: {
-          type: "mrkdwn",
-          text: sourcesText,
-        },
+        text: { type: "mrkdwn", text: sourcesText },
       });
 
       if (summary.sources.length > 5) {
-        blocks.push({
+        mainBlocks.push({
           type: "context",
           elements: [
             {
@@ -318,7 +312,10 @@ export class SlackService {
     }
 
     // Slack allows a maximum of 50 blocks per message
-    return { blocks: blocks.slice(0, 50) };
+    return {
+      mainBlocks: mainBlocks.slice(0, 50),
+      detailBlocks: detailBlocks.slice(0, 50),
+    };
   }
 
   private parseMarkdownSections(markdown: string): Record<string, string> {
@@ -360,6 +357,40 @@ export class SlackService {
 
     // Preserve bullet lists (same format in both)
     return converted;
+  }
+
+  private async postBlocks(
+    blocks: SlackBlock[],
+    threadTs?: string
+  ): Promise<SlackApiResponse> {
+    const payload: SlackApiPayload = {
+      channel: this.channelId,
+      blocks,
+      unfurl_links: false,
+      unfurl_media: false,
+    };
+    if (threadTs) {
+      payload.thread_ts = threadTs;
+    }
+
+    const response = await fetch(this.apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        Authorization: `Bearer ${this.botToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const responseData = this.parseSlackResponse(await response.json());
+
+    if (!response.ok || !responseData.ok) {
+      throw new Error(
+        `Slack API error: ${responseData.error || response.statusText}`
+      );
+    }
+
+    return responseData;
   }
 
   private parseSlackResponse(payload: unknown): SlackApiResponse {
