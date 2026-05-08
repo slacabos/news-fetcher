@@ -20,6 +20,8 @@ interface SlackBlock {
 interface SlackApiPayload {
   channel: string;
   blocks: SlackBlock[];
+  unfurl_links?: boolean;
+  unfurl_media?: boolean;
 }
 
 interface SlackApiResponse {
@@ -90,6 +92,8 @@ export class SlackService {
       const payload: SlackApiPayload = {
         channel: this.channelId,
         blocks: this.formatForSlack(summary).blocks,
+        unfurl_links: false,
+        unfurl_media: false,
       };
 
       // Send to Slack
