@@ -95,6 +95,9 @@ const PORT = config.port;
 
 app.listen(PORT, () => {
   log.info({ port: PORT }, "Server started");
+  if (config.auth.disabled) {
+    log.warn("AUTH_DISABLED is true — authentication is bypassed for all requests");
+  }
   log.debug(
     { origins: ["http://localhost:5173", "http://localhost:8080"] },
     "CORS enabled"

@@ -16,6 +16,8 @@ COPY client ./client
 # Accept Google Client ID as build arg for Vite
 ARG VITE_GOOGLE_CLIENT_ID
 ENV VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+ARG VITE_AUTH_DISABLED
+ENV VITE_AUTH_DISABLED=$VITE_AUTH_DISABLED
 
 # Build the React app
 RUN npm run build --workspace=client

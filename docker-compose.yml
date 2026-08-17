@@ -52,6 +52,7 @@ services:
       - SLACK_AUTO_POST=${SLACK_AUTO_POST:-false}
 
       # Google OAuth
+      - AUTH_DISABLED=${AUTH_DISABLED:-false}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - JWT_SECRET=${JWT_SECRET:-}
       - ALLOWED_EMAIL_DOMAINS=${ALLOWED_EMAIL_DOMAINS:-}
@@ -69,6 +70,7 @@ services:
       dockerfile: Dockerfile.client
       args:
         - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+        - VITE_AUTH_DISABLED=${AUTH_DISABLED:-false}
     container_name: news-fetcher-client
     ports:
       - "8080:80"

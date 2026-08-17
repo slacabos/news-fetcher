@@ -111,6 +111,7 @@ export const config = {
   },
 
   auth: {
+    disabled: process.env.AUTH_DISABLED === "true",
     googleClientId: process.env.GOOGLE_CLIENT_ID || "",
     jwtSecret: process.env.JWT_SECRET || "dev-secret-change-me",
     allowedDomains: (process.env.ALLOWED_EMAIL_DOMAINS || "")

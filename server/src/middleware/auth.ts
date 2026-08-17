@@ -8,6 +8,12 @@ export interface AuthUser {
   picture: string;
 }
 
+export const devAuthUser: AuthUser = {
+  email: "local@news-fetcher.dev",
+  name: "Local User",
+  picture: "",
+};
+
 declare global {
   namespace Express {
     interface Request {
@@ -17,6 +23,12 @@ declare global {
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (config.auth.disabled) {
+    req.user = devAuthUser;
+    next();
+    return;
+  }
+
   const token = req.cookies?.session_token;
 
   if (!token) {

@@ -16,6 +16,7 @@ import { useAuth } from "./hooks/useAuth";
 import "./App.css";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+const AUTH_DISABLED = import.meta.env.VITE_AUTH_DISABLED === "true";
 
 function AuthenticatedApp() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -114,6 +115,10 @@ function AuthenticatedApp() {
 }
 
 function App() {
+  if (AUTH_DISABLED) {
+    return <AuthenticatedApp />;
+  }
+
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <AuthenticatedApp />

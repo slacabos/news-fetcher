@@ -154,6 +154,7 @@ All API endpoints (except `/api/health`) and the frontend are protected by Googl
 # Google OAuth
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com  # same value, for Vite
+AUTH_DISABLED=false  # set to true for a local-only no-login build
 
 # Session signing secret (generate with: openssl rand -hex 32)
 JWT_SECRET=your-random-secret
@@ -165,6 +166,7 @@ ALLOWED_EMAILS=alice@gmail.com,bob@outlook.com
 
 - If both `ALLOWED_EMAIL_DOMAINS` and `ALLOWED_EMAILS` are empty, all Google accounts are allowed.
 - Otherwise, a user's email must match either an allowed domain or be explicitly listed.
+- For local-only Docker use, set `AUTH_DISABLED=true` and rebuild both services to bypass Google login.
 
 ### Auth Endpoints
 

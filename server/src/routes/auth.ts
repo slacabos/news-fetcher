@@ -3,7 +3,7 @@ import { OAuth2Client } from "google-auth-library";
 import jwt from "jsonwebtoken";
 import { config } from "../config";
 import { createLogger } from "../utils/logger";
-import type { AuthUser } from "../middleware/auth";
+import { devAuthUser, type AuthUser } from "../middleware/auth";
 
 const router = Router();
 const log = createLogger("auth");
@@ -76,6 +76,11 @@ router.post("/google", async (req, res) => {
 });
 
 router.get("/me", (req, res) => {
+  if (config.auth.disabled) {
+    res.json({ user: devAuthUser });
+    return;
+  }
+
   const token = req.cookies?.session_token;
 
   if (!token) {
