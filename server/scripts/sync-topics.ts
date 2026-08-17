@@ -1,4 +1,4 @@
-import Database from "better-sqlite3";
+import { createClient } from "@libsql/client";
 import { config } from "../src/config";
 import { createLogger } from "../src/utils/logger";
 
@@ -10,29 +10,24 @@ if (!Array.isArray(topics)) {
   process.exit(1);
 }
 
-const db = new Database(config.database.path);
+const db = createClient({
+  url: config.database.url,
+  authToken: config.database.authToken,
+});
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS topics (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    keywords TEXT NOT NULL,
-    sources TEXT NOT NULL,
-    active INTEGER DEFAULT 1
-  );
-`);
+async function main() {
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS topics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      keywords TEXT NOT NULL,
+      sources TEXT NOT NULL,
+      active INTEGER DEFAULT 1
+    );
+  `);
 
-const selectStmt = db.prepare("SELECT id FROM topics WHERE name = ?");
-const insertStmt = db.prepare(
-  "INSERT INTO topics (name, keywords, sources, active) VALUES (?, ?, ?, ?)"
-);
-const updateStmt = db.prepare(
-  "UPDATE topics SET keywords = ?, sources = ?, active = ? WHERE name = ?"
-);
-
-const { inserted, updated } = db.transaction(() => {
-  let insertedCount = 0;
-  let updatedCount = 0;
+  let inserted = 0;
+  let updated = 0;
 
   for (const topic of topics) {
     if (!topic?.name) {
@@ -43,22 +38,34 @@ const { inserted, updated } = db.transaction(() => {
     const sources = JSON.stringify(topic.sources ?? {});
     const active = topic.active ?? 1;
 
-    const existing = selectStmt.get(topic.name) as { id: number } | undefined;
-    if (existing) {
-      updateStmt.run(keywords, sources, active, topic.name);
-      updatedCount += 1;
+    const existing = await db.execute({
+      sql: "SELECT id FROM topics WHERE name = ?",
+      args: [topic.name],
+    });
+
+    if (existing.rows.length > 0) {
+      await db.execute({
+        sql: "UPDATE topics SET keywords = ?, sources = ?, active = ? WHERE name = ?",
+        args: [keywords, sources, active, topic.name],
+      });
+      updated += 1;
     } else {
-      insertStmt.run(topic.name, keywords, sources, active);
-      insertedCount += 1;
+      await db.execute({
+        sql: "INSERT INTO topics (name, keywords, sources, active) VALUES (?, ?, ?, ?)",
+        args: [topic.name, keywords, sources, active],
+      });
+      inserted += 1;
     }
   }
 
-  return { inserted: insertedCount, updated: updatedCount };
-})();
+  log.info({ inserted, updated }, "Topics synced");
+}
 
-db.close();
-
-log.info(
-  { inserted, updated, dbPath: config.database.path },
-  "Topics synced"
-);
+main()
+  .catch((error) => {
+    log.error({ err: error }, "Failed to sync topics");
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    db.close();
+  });

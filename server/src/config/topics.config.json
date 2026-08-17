@@ -26,8 +26,18 @@
       "Bard",
       "Gemini",
       "LLaMA",
+      "Llama",
       "Cursor",
-      "Hugging Face"
+      "Hugging Face",
+      "Qwen",
+      "DeepSeek",
+      "Mistral",
+      "Copilot",
+      "Perplexity",
+      "Agentic",
+      "AI agent",
+      "vLLM",
+      "Ollama"
     ],
     "sources": {
       "reddit": [
