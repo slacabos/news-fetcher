@@ -18,7 +18,8 @@ import { createLogger } from "../../utils/logger";
 
 const log = createLogger("services/llm/openai");
 
-const MAX_OUTPUT_TOKENS = 4000;
+// Reasoning tokens count toward this cap; keep ample headroom over the visible output
+const MAX_OUTPUT_TOKENS = 8000;
 
 // OpenAI pricing per 1M tokens (January 2026 public sheet)
 // https://openai.com/pricing

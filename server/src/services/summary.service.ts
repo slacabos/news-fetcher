@@ -8,6 +8,14 @@ import { createLogger } from "../utils/logger";
 
 const log = createLogger("services/summary");
 
+// A summary must be at least this old to count as the "previous" brief, so
+// same-day reruns compare against yesterday's brief rather than each other.
+const PREVIOUS_SUMMARY_MIN_AGE_MS = 20 * 60 * 60 * 1000;
+
+// Summary timestamps are SQLite datetime('now') strings in UTC ("YYYY-MM-DD HH:MM:SS").
+const parseSummaryTimestamp = (value: string): number =>
+  Date.parse(value.includes("T") ? value : `${value.replace(" ", "T")}Z`);
+
 export class SummaryService {
   private selectItemsForSummary(items: NewsItem[]): {
     selected: NewsItem[];
@@ -149,12 +157,17 @@ export class SummaryService {
   }
 
   /**
-   * Headlines from the most recent summary for the topic, so the LLM can
-   * skip stories it already covered. Returns [] if unavailable.
+   * Headlines from the most recent summary for the topic created before the
+   * current 24h window, so the LLM can avoid repeating yesterday's stories.
+   * Returns [] if unavailable.
    */
   private async getPreviousHeadlines(topicName: string): Promise<string[]> {
     try {
-      const [previous] = await db.getSummaries({ topic: topicName });
+      const cutoff = Date.now() - PREVIOUS_SUMMARY_MIN_AGE_MS;
+      const summaries = await db.getSummaries({ topic: topicName });
+      const previous = summaries.find(
+        (summary) => parseSummaryTimestamp(summary.created_at) <= cutoff
+      );
       if (!previous?.id) {
         return [];
       }

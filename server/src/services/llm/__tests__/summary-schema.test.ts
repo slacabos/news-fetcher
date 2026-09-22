@@ -51,6 +51,12 @@ describe("parseStructuredSummary", () => {
     );
   });
 
+  it("throws when there are no highlights", () => {
+    expect(() =>
+      parseStructuredSummary(JSON.stringify({ ...sample, highlights: [] }))
+    ).toThrow(/no highlights/);
+  });
+
   it("throws when a required field is missing or has the wrong type", () => {
     const missing: Partial<StructuredSummary> = { ...sample };
     delete missing.alsoNoted;

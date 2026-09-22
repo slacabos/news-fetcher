@@ -113,6 +113,10 @@ export function parseStructuredSummary(raw: string): StructuredSummary {
     }
   );
 
+  if (highlights.length === 0) {
+    throw new Error("Structured summary has no highlights");
+  }
+
   return {
     overview: requireString(payload.overview, "overview"),
     highlights: highlights.slice(0, MAX_HIGHLIGHTS),
