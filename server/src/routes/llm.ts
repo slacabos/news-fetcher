@@ -47,6 +47,13 @@ router.get("/provider", async (req: Request, res: Response) => {
         config.llm.provider === "openai"
           ? config.llm.openai.model
           : config.llm.ollama.model,
+      fallbackProvider: config.llm.fallbackProvider || null,
+      fallbackModel:
+        config.llm.fallbackProvider === "openai"
+          ? config.llm.openai.model
+          : config.llm.fallbackProvider === "ollama"
+            ? config.llm.ollama.model
+            : null,
       loggingEnabled: config.llm.logging.enabled,
     });
   } catch (error) {

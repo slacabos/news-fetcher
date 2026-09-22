@@ -61,6 +61,7 @@ export const config = {
   // LLM Configuration - supports multiple providers
   llm: {
     provider: process.env.LLM_PROVIDER || "ollama", // 'ollama' | 'openai'
+    fallbackProvider: process.env.LLM_FALLBACK_PROVIDER || "", // optional, used when the primary fails
 
     ollama: {
       apiUrl: process.env.OLLAMA_API_URL || "http://localhost:11434",
