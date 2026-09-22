@@ -1,53 +1,62 @@
 import type OpenAI from "openai";
 import { NewsItem } from "../../models/types";
+import { MAX_DETAILS, MAX_HIGHLIGHTS } from "./summary-schema";
 
 export type SummaryPromptContext = {
   topic: string;
   newsItems: NewsItem[];
+  previousHeadlines?: string[];
 };
 
 export function buildSummaryMessages(
   context: SummaryPromptContext,
 ): OpenAI.Chat.ChatCompletionMessageParam[] {
-  const { topic, newsItems } = context;
+  const { topic, newsItems, previousHeadlines } = context;
 
   return [
     { role: "system", content: buildSystemPrompt(topic) },
-    { role: "user", content: buildUserPrompt(topic, newsItems) },
+    {
+      role: "user",
+      content: buildUserPrompt(topic, newsItems, previousHeadlines),
+    },
   ];
 }
 
 function buildSystemPrompt(topic: string): string {
-  return `You are an expert AI news analyst specializing in ${topic}. Your role is to:
-- Analyze news posts and identify key trends and developments
-- Create comprehensive, well-structured markdown summaries
-- Maintain objectivity and technical accuracy
-- Prioritize high-quality, high-engagement content
-- Present information in a clear, newsworthy format
+  return `You are an expert AI news analyst specializing in ${topic}. You write a daily news brief from a list of posts. For each post you only have its headline, source and engagement score.
 
-When creating summaries, always use this exact structure:
+Respond with a single JSON object with exactly these fields:
+- "overview": 2-3 sentences on the main themes of the day. Plain prose, no lists, no labels.
+- "highlights": ${MAX_HIGHLIGHTS - 2}-${MAX_HIGHLIGHTS} standout items, each { "name": company, product or topic, "text": one sentence }.
+- "details": at most ${MAX_DETAILS} of the most significant stories, ordered by significance (highest-scored first), each { "title": short story title, "text": 1-2 sentences, "score": the post's score as an integer }. When several posts cover the same story, merge them into one item and use the highest score.
+- "alsoNoted": one sentence briefly grouping the remaining minor or low-scored posts worth a mention, or "" if there are none.
 
-## Summary
-Provide 2-3 sentences summarizing the main themes, trends, and overall sentiment in ${topic} today, followed by 3-5 standout highlights in this format:
-- **Topic/Company Name**: Brief description of the highlight or announcement
-
-## Details
-- List major developments, announcements, or breakthroughs
-- Each bullet should be 1-2 sentences
-- Focus on concrete, newsworthy items
-- Order by significance (highest-scored posts first)
-
-Guidelines:
-- Use proper markdown formatting throughout
-- Be concise but informative
-- Focus on facts, not speculation
-- Maintain a professional, objective tone`;
+Rules:
+- Only state what the headline and source support. Do not speculate about implications or trends, and avoid filler such as "this suggests", "signals", "underscores" or "reflects a broader trend".
+- If a headline makes an unverified claim, attribute it ("a post claims...") rather than stating it as fact.
+- Do not include URLs or markdown formatting inside the text fields.
+- Keep a neutral, factual tone.
+- Output only the JSON object, with no preamble, follow-up offers or commentary.`;
 }
 
-function buildUserPrompt(topic: string, newsItems: NewsItem[]): string {
-  return `Analyze these ${
+function buildUserPrompt(
+  topic: string,
+  newsItems: NewsItem[],
+  previousHeadlines?: string[],
+): string {
+  const previousSection =
+    previousHeadlines && previousHeadlines.length > 0
+      ? `
+
+**Previously covered (headlines from the previous brief):**
+${previousHeadlines.map((headline) => `- ${headline}`).join("\n")}
+
+Skip stories that were already covered unless a post reports a new development. For a new development, start the detail title with "Follow-up:".`
+      : "";
+
+  return `Summarize these ${
     newsItems.length
-  } stories/posts about ${topic} from the last 24 hours and create a comprehensive news summary.
+  } stories/posts about ${topic} from the last 24 hours.${previousSection}
 
 **News Posts:**
 ${formatNewsItems(newsItems)}`;

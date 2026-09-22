@@ -7,6 +7,13 @@ dotenv.config({ path: "../.env" });
 
 const modelPricing = assertModelPricingMap(rawModelPricing);
 
+const parseOllamaThink = (value: string): boolean | string | undefined => {
+  if (!value) return undefined;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return value;
+};
+
 const parsePositiveInt = (value: string | undefined, fallback: number): number => {
   const parsed = Number.parseInt(value ?? "", 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -66,6 +73,9 @@ export const config = {
     ollama: {
       apiUrl: process.env.OLLAMA_API_URL || "http://localhost:11434",
       model: process.env.OLLAMA_MODEL || "gpt-oss:20b",
+      // Reasoning level for thinking models: "low" | "medium" | "high" (gpt-oss)
+      // or "true" | "false". Omitted from requests when unset.
+      think: parseOllamaThink(process.env.OLLAMA_THINK || ""),
     },
 
     openai: {

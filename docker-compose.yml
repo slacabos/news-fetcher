@@ -22,6 +22,7 @@ services:
       # Ollama Configuration (default)
       - OLLAMA_API_URL=${OLLAMA_API_URL:-http://host.docker.internal:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-gpt-oss:20b}
+      - OLLAMA_THINK=${OLLAMA_THINK:-low}
 
       # OpenAI Configuration (alternative)
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}

@@ -1,5 +1,5 @@
 import { NewsItem } from "../../models/types";
-import { BaseLLMService } from "./base.llm.service";
+import { BaseLLMService, GenerateSummaryOptions } from "./base.llm.service";
 import { createLogger } from "../../utils/logger";
 
 const log = createLogger("services/llm/fallback");
@@ -32,9 +32,13 @@ export class FallbackLLMService extends BaseLLMService {
     return this.fallback.getModelName();
   }
 
-  async generateSummary(newsItems: NewsItem[], topic: string): Promise<string> {
+  async generateSummary(
+    newsItems: NewsItem[],
+    topic: string,
+    options?: GenerateSummaryOptions
+  ): Promise<string> {
     try {
-      return await this.primary.generateSummary(newsItems, topic);
+      return await this.primary.generateSummary(newsItems, topic, options);
     } catch (error) {
       log.warn(
         {
@@ -44,7 +48,7 @@ export class FallbackLLMService extends BaseLLMService {
         },
         "Primary LLM failed, using fallback"
       );
-      return this.fallback.generateSummary(newsItems, topic);
+      return this.fallback.generateSummary(newsItems, topic, options);
     }
   }
 

@@ -2,6 +2,8 @@ export type ModelPricingEntry = { input: number; output: number };
 export type ModelPricingMap = Record<string, ModelPricingEntry>;
 
 export type TextResponse = {
+  status?: string;
+  incomplete_details?: { reason?: string } | null;
   output?: Array<{
     content?: Array<{ type?: string; text?: string }>;
   }>;
@@ -44,6 +46,21 @@ function assertTextResponseShape(
 ): asserts payload is TextResponse {
   if (!isRecord(payload)) {
     throw new Error("OpenAI response payload is missing or malformed");
+  }
+
+  if (payload.status !== undefined && typeof payload.status !== "string") {
+    throw new Error("OpenAI response status must be a string when present");
+  }
+
+  const incompleteDetails = payload.incomplete_details;
+  if (
+    incompleteDetails !== undefined &&
+    incompleteDetails !== null &&
+    !isRecord(incompleteDetails)
+  ) {
+    throw new Error(
+      "OpenAI response incomplete_details must be an object when present"
+    );
   }
 
   const output = payload.output;

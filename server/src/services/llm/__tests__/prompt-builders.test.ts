@@ -64,15 +64,33 @@ describe("buildSummaryMessages", () => {
     });
   });
 
-  it("spells out required markdown sections", () => {
+  it("describes the JSON fields in the system prompt", () => {
     const messages = buildSummaryMessages({
       topic: "AI",
       newsItems: sampleNewsItems,
     });
     const systemPrompt = String(messages[0].content);
 
-    ["## Summary", "## Details"].forEach((section) => {
-      expect(systemPrompt).toContain(section);
+    ["overview", "highlights", "details", "alsoNoted"].forEach((field) => {
+      expect(systemPrompt).toContain(`"${field}"`);
     });
+  });
+
+  it("includes previous headlines only when provided", () => {
+    const withoutPrevious = String(
+      buildSummaryMessages({ topic: "AI", newsItems: sampleNewsItems })[1]
+        .content,
+    );
+    expect(withoutPrevious).not.toContain("Previously covered");
+
+    const withPrevious = String(
+      buildSummaryMessages({
+        topic: "AI",
+        newsItems: sampleNewsItems,
+        previousHeadlines: ["Yesterday's big launch"],
+      })[1].content,
+    );
+    expect(withPrevious).toContain("Previously covered");
+    expect(withPrevious).toContain("- Yesterday's big launch");
   });
 });

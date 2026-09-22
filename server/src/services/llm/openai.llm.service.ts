@@ -6,12 +6,19 @@ import {
   ModelPricingMap,
   TextResponse,
 } from "../../utils/schema-guards";
-import { BaseLLMService } from "./base.llm.service";
+import { BaseLLMService, GenerateSummaryOptions } from "./base.llm.service";
 import { LLMLogger } from "./logger.service";
 import { buildSummaryMessages } from "./prompt-builders";
+import {
+  parseStructuredSummary,
+  renderSummaryMarkdown,
+  SUMMARY_JSON_SCHEMA,
+} from "./summary-schema";
 import { createLogger } from "../../utils/logger";
 
 const log = createLogger("services/llm/openai");
+
+const MAX_OUTPUT_TOKENS = 4000;
 
 // OpenAI pricing per 1M tokens (January 2026 public sheet)
 // https://openai.com/pricing
@@ -53,7 +60,11 @@ export class OpenAILLMService extends BaseLLMService {
     return this.model;
   }
 
-  async generateSummary(newsItems: NewsItem[], topic: string): Promise<string> {
+  async generateSummary(
+    newsItems: NewsItem[],
+    topic: string,
+    options?: GenerateSummaryOptions
+  ): Promise<string> {
     if (newsItems.length === 0) {
       return "No news items found for this topic.";
     }
@@ -72,18 +83,36 @@ export class OpenAILLMService extends BaseLLMService {
     const messages = buildSummaryMessages({
       topic,
       newsItems: sortedItems,
+      previousHeadlines: options?.previousHeadlines,
     });
     const responseInput = this.transformForResponses(messages);
 
     try {
       const response = await this.client.responses.create({
         model: this.model,
-        max_output_tokens: 2000,
+        max_output_tokens: MAX_OUTPUT_TOKENS,
         input: responseInput,
+        text: {
+          format: {
+            type: "json_schema",
+            name: "news_summary",
+            schema: SUMMARY_JSON_SCHEMA,
+            strict: true,
+          },
+        },
       });
 
       const validatedResponse = assertTextResponse(response);
-      const summary = this.extractTextFromResponse(validatedResponse);
+      if (validatedResponse.status === "incomplete") {
+        throw new Error(
+          `OpenAI response incomplete: ${
+            validatedResponse.incomplete_details?.reason ?? "unknown reason"
+          }`
+        );
+      }
+      const summary = renderSummaryMarkdown(
+        parseStructuredSummary(this.extractTextFromResponse(validatedResponse))
+      );
       const latencyMs = Date.now() - startTime;
 
       // Extract token usage and calculate cost

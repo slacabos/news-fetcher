@@ -31,8 +31,12 @@ describe("FallbackLLMService", () => {
     const fallback = makeService("ollama", async () => "fallback summary");
     const service = new FallbackLLMService(primary, fallback);
 
-    await expect(service.generateSummary([], "AI")).resolves.toBe("fallback summary");
-    expect(fallback.generateSummary).toHaveBeenCalledWith([], "AI");
+    const options = { previousHeadlines: ["Old story"] };
+    await expect(service.generateSummary([], "AI", options)).resolves.toBe(
+      "fallback summary"
+    );
+    expect(primary.generateSummary).toHaveBeenCalledWith([], "AI", options);
+    expect(fallback.generateSummary).toHaveBeenCalledWith([], "AI", options);
   });
 
   it("propagates the error when both providers fail", async () => {

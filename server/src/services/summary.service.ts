@@ -148,6 +148,27 @@ export class SummaryService {
     return { selected: selectedItems, discarded: discardedItems };
   }
 
+  /**
+   * Headlines from the most recent summary for the topic, so the LLM can
+   * skip stories it already covered. Returns [] if unavailable.
+   */
+  private async getPreviousHeadlines(topicName: string): Promise<string[]> {
+    try {
+      const [previous] = await db.getSummaries({ topic: topicName });
+      if (!previous?.id) {
+        return [];
+      }
+      const sources = await db.getSourcesBySummaryId(previous.id);
+      return sources.map((source) => source.title);
+    } catch (error) {
+      log.warn(
+        { err: error, topic: topicName },
+        "Failed to load previous summary headlines"
+      );
+      return [];
+    }
+  }
+
   async generateSummaryForTopic(
     topicName: string
   ): Promise<SummaryWithSources> {
@@ -231,9 +252,11 @@ export class SummaryService {
     }
 
     // Generate summary using LLM service
+    const previousHeadlines = await this.getPreviousHeadlines(topicName);
     const summaryMarkdown = await llmService.generateSummary(
       itemsForSummary,
-      topicName
+      topicName,
+      { previousHeadlines }
     );
 
     // Save summary to database
